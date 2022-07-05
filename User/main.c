@@ -9,15 +9,11 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include "NuMicro.h"
+#include "interrupt.h"
 #include "vcom_serial.h"
 #include "sys.h"
+#include "UI.h"
 
-
-/* SysTick */
-volatile uint32_t g_SysTickIntCnt = 0;
-volatile bool gbSecondsFlag = false;
-extern volatile bool gbPcTerminalActive;
-extern volatile uint8_t gu8PcTerminalActive_TimeoutCounter;
 
 
 void SYS_Init(void)
@@ -112,16 +108,22 @@ int main (void)
     {
         VCOM_TransferData();
 
-        uint8_t byte;
-        if(VCOM_PopFromBuf(&byte) == EXIT_SUCCESS){
-        	printf("Received character %i\n", byte);
+
+        int8_t i8RowSel, i8ColumnSel;
+        read_user_input(&i8RowSel,&i8ColumnSel);
+
+        if(gbDrawNewUIFrame){// Every UI_FRAME_INTERVAL_MS milliseconds
+        	gbDrawNewUIFrame = false;
+
+        	if(gbTerminalActive){
+        		draw_UI(i8RowSel, i8ColumnSel);
+        	}
+
         }
 
         if(gbSecondsFlag){// Every second
         	gbSecondsFlag = false;// Clear the flag
         	// Do things that need to be done every second
-
-        	VCOM_PushString("Tick\n\r");
 
         	PB->DOUT &= ~(BIT13|BIT14|BIT15);
         	PB->DOUT |= (u8LEDState << 13);
@@ -133,28 +135,6 @@ int main (void)
         }
     }
 
-
-}
-
-void SysTick_Handler(void)	// Every millisecond (Medium frequency).
-{
-    g_SysTickIntCnt++;
-
-    /* USB terminal on host PC timeout*/
-    if(gu8PcTerminalActive_TimeoutCounter){/* If the inactivity counter has not elapsed*/
-    	gu8PcTerminalActive_TimeoutCounter--;/* Decrement*/
-    	gbPcTerminalActive = true; /* Is means the terminal is active*/
-    }else{
-    	gbPcTerminalActive = false; /* Else the terminal is not active*/
-
-    }
-
-    static uint16_t u16SecondsCounter = 1000; /* 1000 ms per second*/
-    if(!u16SecondsCounter){// If counter has elapsed (equals zero)
-    	u16SecondsCounter = 1000;//Reload counter. 1000 ms per second.
-    	gbSecondsFlag = true;
-    }
-    u16SecondsCounter--; // Decrease the counter every time SysTick_Handler is called
 
 }
 

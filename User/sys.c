@@ -6,13 +6,14 @@
  */
 #include "sys.h"
 
-extern volatile uint32_t g_SysTickIntCnt;
+#include "interrupt.h"
+
 
 void delay_ms(uint32_t delay){ /*Generates a milliseconds delay. NOT ACCURATE. Use a hardware timer for accuracy*/
 
-	uint32_t end_time = g_SysTickIntCnt + delay;
+	uint32_t end_time = gu32SysTickIntCnt + delay;
 
-	while(g_SysTickIntCnt <= end_time){ /* As long as the end time is not reached*/
+	while(gu32SysTickIntCnt <= end_time){ /* As long as the end time is not reached*/
 		/* Do nothing*/
 	}
 }

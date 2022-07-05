@@ -49,6 +49,9 @@
 #define USBD_REMOTE_WAKEUP              0
 #define USBD_MAX_POWER                  50  /* The unit is in 2mA. ex: 50 * 2mA = 100mA */
 
+#define RXBUFSIZE           2048 /* RX buffer size. (Bytes received by the USB driver and transmitted to the host) Max 64k. */
+#define TXBUFSIZE           32 /* TX buffer size. (Bytes received from the host and transmitted by the USB driver) Max 64k. */
+
 /* Define the timeout of PC terminal */
 #define PC_TERMINAL_TIMEOUT_MS 2 /* Number of milliseconds after which we consider the terminal has been closed if we stop receiving IN packets. Max. 255*/
 
@@ -70,18 +73,10 @@ typedef struct
 } STR_VCOM_LINE_CODING;
 
 /*-------------------------------------------------------------*/
-extern volatile int8_t gi8BulkOutReady;
-extern STR_VCOM_LINE_CODING gLineCoding;
-extern uint16_t gCtrlSignal;
-extern volatile uint16_t comRbytes;
-extern volatile uint16_t comRhead;
-extern volatile uint16_t comRtail;
-extern volatile uint16_t comTbytes;
-extern volatile uint16_t comThead;
-extern volatile uint16_t comTtail;
-extern uint8_t *gpu8RxBuf;
-extern uint32_t gu32RxSize;
-extern uint32_t gu32TxSize;
+
+extern volatile uint16_t comRbytesMax;
+extern volatile uint16_t comTbytesMax;
+
 
 /*-------------------------------------------------------------*/
 void VCOM_Init(void);

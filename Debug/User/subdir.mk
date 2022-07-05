@@ -4,19 +4,25 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
+../User/UI.c \
 ../User/descriptors.c \
+../User/interrupt.c \
 ../User/main.c \
 ../User/sys.c \
 ../User/vcom_serial.c 
 
 OBJS += \
+./User/UI.o \
 ./User/descriptors.o \
+./User/interrupt.o \
 ./User/main.o \
 ./User/sys.o \
 ./User/vcom_serial.o 
 
 C_DEPS += \
+./User/UI.d \
 ./User/descriptors.d \
+./User/interrupt.d \
 ./User/main.d \
 ./User/sys.d \
 ./User/vcom_serial.d 

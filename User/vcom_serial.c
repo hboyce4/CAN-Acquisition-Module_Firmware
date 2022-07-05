@@ -21,8 +21,6 @@ STR_VCOM_LINE_CODING gLineCoding = {115200, 0, 0, 8};   /* Baud rate : 115200   
 uint16_t gCtrlSignal = 0;     /* BIT0: DTR(Data Terminal Ready) , BIT1: RTS(Request To Send) */
 
 /*--------------------------------------------------------------------------*/
-#define RXBUFSIZE           4096 /* RX buffer size. (Bytes received by the USB driver and transmitted to the host) Max 64k. */
-#define TXBUFSIZE           128 /* TX buffer size. (Bytes received from the host and transmitted by the USB driver) Max 64k. */
 
 /*---------------------------------------------------------------------------------------------------------*/
 /* Global variables                                                                                        */
@@ -32,11 +30,13 @@ volatile uint8_t comRbuf[RXBUFSIZE];
 volatile uint16_t comRbytes = 0;
 volatile uint16_t comRhead = 0;
 volatile uint16_t comRtail = 0;
+volatile uint16_t comRbytesMax = 0;
 
 volatile uint8_t comTbuf[TXBUFSIZE];
 volatile uint16_t comTbytes = 0;
 volatile uint16_t comThead = 0;
 volatile uint16_t comTtail = 0;
+volatile uint16_t comTbytesMax = 0;
 
 uint8_t gRxBuf[64] = {0};
 uint8_t *gpu8RxBuf = 0;
@@ -47,166 +47,8 @@ volatile int8_t gi8BulkOutReady = 0;
 
 uint32_t volatile g_u32OutToggle = 0;
 
-volatile bool gbPcTerminalActive = false;
-volatile uint8_t gu8PcTerminalActive_TimeoutCounter = 0;
-
 /*--------------------------------------------------------------------------*/
-void USBD_IRQHandler(void)
-{
 
-	uint32_t u32IntSts = USBD_GET_INT_FLAG();
-    uint32_t u32State = USBD_GET_BUS_STATE();
-
-//------------------------------------------------------------------
-    if (u32IntSts & USBD_INTSTS_FLDET)
-    {
-        // Floating detect
-        USBD_CLR_INT_FLAG(USBD_INTSTS_FLDET);
-
-        if (USBD_IS_ATTACHED())
-        {
-            /* USB Plug In */
-            USBD_ENABLE_USB();
-        }
-        else
-        {
-            /* USB Un-plug */
-            USBD_DISABLE_USB();
-        }
-    }
-
-//------------------------------------------------------------------
-    if (u32IntSts & USBD_INTSTS_BUS)
-    {
-        /* Clear event flag */
-        USBD_CLR_INT_FLAG(USBD_INTSTS_BUS);
-
-        if (u32State & USBD_STATE_USBRST)
-        {
-            /* Bus reset */
-            USBD_ENABLE_USB();
-            USBD_SwReset();
-            g_u32OutToggle = 0;
-        }
-        if (u32State & USBD_STATE_SUSPEND)
-        {
-            /* Enable USB but disable PHY */
-            USBD_DISABLE_PHY();
-        }
-        if (u32State & USBD_STATE_RESUME)
-        {
-            /* Enable USB and enable PHY */
-            USBD_ENABLE_USB();
-        }
-    }
-
-//------------------------------------------------------------------
-    if(u32IntSts & USBD_INTSTS_WAKEUP)
-    {
-        /* Clear event flag */
-        USBD_CLR_INT_FLAG(USBD_INTSTS_WAKEUP);
-    }
-
-    if (u32IntSts & USBD_INTSTS_USB)
-    {
-        extern uint8_t g_usbd_SetupPacket[];
-        // USB event
-        if (u32IntSts & USBD_INTSTS_SETUP)
-        {
-            // Setup packet
-            /* Clear event flag */
-            USBD_CLR_INT_FLAG(USBD_INTSTS_SETUP);
-
-            /* Clear the data IN/OUT ready flag of control end-points */
-            USBD_STOP_TRANSACTION(EP0);
-            USBD_STOP_TRANSACTION(EP1);
-
-            USBD_ProcessSetupPacket();
-        }
-
-        // EP events
-        if (u32IntSts & USBD_INTSTS_EP0)
-        {
-            /* Clear event flag */
-            USBD_CLR_INT_FLAG(USBD_INTSTS_EP0);
-
-            if(((USBD->EPSTS0 & USBD_EPSTS0_EPSTS0_Msk) >> USBD_EPSTS0_EPSTS0_Pos) != 0b0001){// If the status is not "In NACK", that is, if the interrupt was not the result of a NACK. See page 1826 of Tech. Ref. Man. V3.02
-				// control IN
-            	USBD_CtrlIn();
-			}
-
-        }
-
-        if (u32IntSts & USBD_INTSTS_EP1)
-        {
-            /* Clear event flag */
-            USBD_CLR_INT_FLAG(USBD_INTSTS_EP1);
-
-            // control OUT
-            USBD_CtrlOut();
-
-            // In ACK of SET_LINE_CODE
-            if(g_usbd_SetupPacket[1] == SET_LINE_CODE)
-            {
-                /* This is where the settings of the physical UART would be updated. */
-            	/* However there is no physical UART so we do nothing. */
-            	//if(g_usbd_SetupPacket[4] == 0)  /* VCOM-1 */
-                //    VCOM_LineCoding(0); /* Apply UART settings */
-            }
-        }
-
-        if (u32IntSts & USBD_INTSTS_EP2)/* Ceci gère le endpoint HARDWARE #2, ce qui équivaut au BULK_IN_EP_NUM (1)*/
-        {
-            /* Clear event flag */
-            USBD_CLR_INT_FLAG(USBD_INTSTS_EP2);
-
-            /* This block will be trigerred everytime the host PC requests an IN packet */
-            /* The host PC will request an IN packet every 1ms when a terminal is open */
-            /* Therefore everytime an IN packet is received we reset the inactivity counter */
-            gu8PcTerminalActive_TimeoutCounter = PC_TERMINAL_TIMEOUT_MS;
-
-            if(((USBD->EPSTS0 & USBD_EPSTS0_EPSTS2_Msk) >> USBD_EPSTS0_EPSTS2_Pos) == 0b0000){// If the status is "In ACK", that is, an in packet was successfully transmitted on HW endpoint 2
-            	// Bulk IN
-            	EP2_Handler();
-            }
-
-
-        }
-
-        if (u32IntSts & USBD_INTSTS_EP3) /* Ceci gère le endpoint HARDWARE #3, ce qui équivaut au BULK_OUT_EP_NUM (2)*/
-        {
-            /* Clear event flag */
-            USBD_CLR_INT_FLAG(USBD_INTSTS_EP3);
-            // Bulk Out
-            EP3_Handler();
-        }
-
-        if (u32IntSts & USBD_INTSTS_EP4) /*Ceci gère le endpoint HARDWARE #4, ce qui équivaut au INT_IN_EP_NUM (3) (Inactif)*/
-        {
-            /* Clear event flag */
-            USBD_CLR_INT_FLAG(USBD_INTSTS_EP4);
-        }
-
-        if (u32IntSts & USBD_INTSTS_EP5)
-        {
-            /* Clear event flag */
-            USBD_CLR_INT_FLAG(USBD_INTSTS_EP5);
-        }
-
-        if (u32IntSts & USBD_INTSTS_EP6)
-        {
-            /* Clear event flag */
-            USBD_CLR_INT_FLAG(USBD_INTSTS_EP6);
-        }
-
-        if (u32IntSts & USBD_INTSTS_EP7)
-        {
-            /* Clear event flag */
-            USBD_CLR_INT_FLAG(USBD_INTSTS_EP7);
-        }
-    }
-
-}
 
 void EP2_Handler(void)
 {
@@ -372,6 +214,11 @@ int8_t VCOM_PushToBuf(uint8_t bInChar){// Send to USB host (a.k.a PC)
 			comRtail = 0;
 		comRbytes++;
 
+		/* For debugging */
+		if (comRbytes > comRbytesMax){ /* if comRbytes is at a new height */
+			comRbytesMax = comRbytes; /* Save its value */
+		}
+
 		return EXIT_SUCCESS;
 
 	}else{
@@ -437,7 +284,7 @@ void VCOM_TransferData(void)
                     comRhead = 0;
             }
 
-            __set_PRIMASK(1);
+            __set_PRIMASK(1); /* This "prevents the activation of all exceptions with configurable priority". Idk why that's needed. */
             comRbytes -= i32Len;
             __set_PRIMASK(0);
 
@@ -465,9 +312,15 @@ void VCOM_TransferData(void)
                 comTtail = 0;
         }
 
-        __set_PRIMASK(1);
+        __set_PRIMASK(1); /* This "prevents the activation of all exceptions with configurable priority". Idk why that's needed. */
         comTbytes += gu32RxSize;
         __set_PRIMASK(0);
+
+        /* For debugging */
+        if(comTbytes > comTbytesMax){ /* Of the number of bytes reaches a new height*/
+        	comTbytesMax = comTbytes; /* Store the new height */
+        }
+
 
         gu32RxSize = 0;
         gi8BulkOutReady = 0; /* Clear bulk out ready flag */
