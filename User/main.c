@@ -30,39 +30,50 @@ void SYS_Init(void)
     /* Waiting for 12MHz clock ready */
     CLK_WaitClockReady(CLK_STATUS_HXTSTB_Msk);
 
-    /* Switch HCLK clock source to HXT */
-    CLK_SetHCLK(CLK_CLKSEL0_HCLKSEL_HXT,CLK_CLKDIV0_HCLK(1));
+    /* Switch HCLK clock source to HXT. HXT = HCLK = 12 MHz */
+    CLK_SetHCLK(CLK_CLKSEL0_HCLKSEL_HXT,CLK_CLKDIV0_HCLK(1)); /* Most likely superfluous, see next line.*/
 
-    /* Set core clock as PLL_CLOCK from PLL */
+    /* Switch HCLK to PLL, set PLL to 192 MHz. PLL = HCLK = 192 MHz */
     CLK_SetCoreClock(FREQ_192MHZ);
 
-    /* Set both PCLK0 and PCLK1 as HCLK/2 */
-    CLK->PCLKDIV = CLK_PCLKDIV_APB0DIV_DIV2 | CLK_PCLKDIV_APB1DIV_DIV2;
+    /* Set both PCLK0 and PCLK1 as HCLK/4. PCLK0 = PCLK 1 = HCLK/4 = 192 MHz/4 = 48 MHz   */
+    CLK->PCLKDIV = CLK_PCLKDIV_APB0DIV_DIV4 | CLK_PCLKDIV_APB1DIV_DIV4;
 
 
+    /*********************** USB Device *****************************************/
     /* Select IP clock source for USB */
-    CLK->CLKSEL0 |= CLK_CLKSEL0_USBSEL_Msk;
+    CLK->CLKSEL0 |= CLK_CLKSEL0_USBSEL_Msk; /* Select PLL as source (192 MHz) */
     CLK->CLKDIV0 = (CLK->CLKDIV0 & ~CLK_CLKDIV0_USBDIV_Msk) | CLK_CLKDIV0_USB(4);/* USB peripheral requires 48 MHz clk. 192MHz/4 = 48 MHz*/
-
-
     /* Select USBD */
     SYS->USBPHY = (SYS->USBPHY & ~SYS_USBPHY_USBROLE_Msk) | SYS_USBPHY_USBEN_Msk | SYS_USBPHY_SBO_Msk;
-
     /* Enable IP clock */
     CLK_EnableModuleClock(USBD_MODULE);
+    /*********************** USB Device End **************************************/
 
+    /***************************** UART0 *****************************************/
     /* Select UART clock source from HXT */
     CLK_SetModuleClock(UART0_MODULE, CLK_CLKSEL1_UART0SEL_HXT, CLK_CLKDIV0_UART0(1));
-
     /* Enable IP clock */
     CLK_EnableModuleClock(UART0_MODULE);
+    /***************************** UART0 End *************************************/
 
-    /* SysTick*/
+    /***************************** EADC *****************************************/
+    /* EADC clock has only one source: PCLK1, so no need to select it.*/
+    CLK->CLKDIV0 &= ~CLK_CLKDIV0_EADCDIV_Msk;/* Clear the divider for EADC */
+    /* The divider set to 0 means the clock is divided by 1. It also means the ADC can be recalibrated*/
+    /* EADC_CLK = PCLK/1 = 48MHz/1 = 48 MHz. (72 MHz max as per TRM) */
+    /* Enable IP clock */
+    CLK_EnableModuleClock(EADC_MODULE);
+    /***************************** EADC End *************************************/
+
+
+    /***************************** SysTick ***************************************/
     /* Update System Core Clock */
     SystemCoreClockUpdate();
     /* SysTick 1m second interrupts  */
-    SysTick_Config(SystemCoreClock / 1000);
+    SysTick_Config(SystemCoreClock / 1000); /* SysTick is driven by CPU Clock */
     NVIC_SetPriority(SysTick_IRQn, 1);// Set the interrupt priority.
+    /***************************** SysTick End ***********************************/
 
     /* Set PA.12 ~ PA.14 (Full Speed USB pins)to input mode */
     PA->MODE &= ~(GPIO_MODE_MODE12_Msk | GPIO_MODE_MODE13_Msk | GPIO_MODE_MODE14_Msk);
@@ -77,6 +88,22 @@ void SYS_Init(void)
 	SYS->GPB_MFPH &= ~(SYS_GPB_MFPH_PB13MFP_Msk | SYS_GPB_MFPH_PB14MFP_Msk | SYS_GPB_MFPH_PB15MFP_Msk);
 	SYS->GPB_MFPH |= (SYS_GPB_MFPH_PB13MFP_GPIO | SYS_GPB_MFPH_PB14MFP_GPIO | SYS_GPB_MFPH_PB15MFP_GPIO);// Set Multifunction pin (MFP) as GPIO
 	GPIO_SetMode(PB, BIT13|BIT14|BIT15, GPIO_MODE_OUTPUT); // Set LED pins as outputs.
+
+	/* EADC */
+	SYS->IVSCTL |= SYS_IVSCTL_VTEMPEN_Msk; /* Enable temperature sensor */
+	 /* EADC: Set PB.0 ~ PB.11 to input mode */
+	GPIO_SetMode(PB, BIT11|BIT10|BIT9|BIT8|BIT7|BIT6|BIT5|BIT4|BIT3|BIT2|BIT1|BIT0, GPIO_MODE_INPUT);/* Cleared to 0b00 is input */
+	GPIO_DISABLE_DIGITAL_PATH(PB, BIT11|BIT10|BIT9|BIT8|BIT7|BIT6|BIT5|BIT4|BIT3|BIT2|BIT1|BIT0);/* Disable digital input paths to reduce leakage currents. */
+
+	/* EADC: Configure the GPB0 - GPB11 ADC analog input pins. (Multi Function Pins) */
+	SYS->GPB_MFPL &= ~(SYS_GPB_MFPL_PB0MFP_Msk | SYS_GPB_MFPL_PB1MFP_Msk | SYS_GPB_MFPL_PB2MFP_Msk | SYS_GPB_MFPL_PB3MFP_Msk
+				 |SYS_GPB_MFPL_PB4MFP_Msk | SYS_GPB_MFPL_PB5MFP_Msk | SYS_GPB_MFPL_PB6MFP_Msk | SYS_GPB_MFPL_PB7MFP_Msk);
+	SYS->GPB_MFPL |= (SYS_GPB_MFPL_PB0MFP_EADC0_CH0 | SYS_GPB_MFPL_PB1MFP_EADC0_CH1 | SYS_GPB_MFPL_PB2MFP_EADC0_CH2 |
+				 SYS_GPB_MFPL_PB3MFP_EADC0_CH3 | SYS_GPB_MFPL_PB4MFP_EADC0_CH4 | SYS_GPB_MFPL_PB5MFP_EADC0_CH5 | SYS_GPB_MFPL_PB6MFP_EADC0_CH6 |
+				 SYS_GPB_MFPL_PB7MFP_EADC0_CH7);
+	SYS->GPB_MFPH &= ~(SYS_GPB_MFPH_PB8MFP_Msk | SYS_GPB_MFPH_PB9MFP_Msk | SYS_GPB_MFPH_PB10MFP_Msk | SYS_GPB_MFPH_PB11MFP_Msk);
+	SYS->GPB_MFPH |= (SYS_GPB_MFPH_PB8MFP_EADC0_CH8 | SYS_GPB_MFPH_PB9MFP_EADC0_CH9 | SYS_GPB_MFPH_PB10MFP_EADC0_CH10 | SYS_GPB_MFPH_PB11MFP_EADC0_CH11);
+
 
 
     /* Lock protected registers */

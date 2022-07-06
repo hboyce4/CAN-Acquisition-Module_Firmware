@@ -270,7 +270,7 @@ void draw_UI_info_page_sys(){
 	VCOM_PushString((char*) line_str);
 
 	/***************************************** Third Line ********************************************/
-	uint32_t u32LEDStatus = (PB->DOUT & (BIT13|BIT14|BIT15));
+	uint32_t u32LEDStatus = (PB->PIN & (BIT13|BIT14|BIT15));
 	u32LEDStatus >>= 13;
 	sprintf(line_str, "LED status: %u %sVariable 6: %2.2f V\n\r", u32LEDStatus, CURSOR_RIGHT_COLUMN, gfVariable6);
 

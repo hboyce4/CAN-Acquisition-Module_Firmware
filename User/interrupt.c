@@ -10,6 +10,7 @@
 #include "NuMicro.h"
 #include "UI.h"
 #include "vcom_serial.h"
+#include "analog.h"
 
 
 /* SysTick */
@@ -207,6 +208,27 @@ void USBD_IRQHandler(void)
             /* Clear event flag */
             USBD_CLR_INT_FLAG(USBD_INTSTS_EP7);
         }
+    }
+
+}
+
+void EADC00_IRQHandler(void){ /* Very high frequency interrupt. Keep very light!!! */
+
+    EADC_CLR_INT_FLAG(EADC, EADC_STATUS2_ADIF0_Msk);      /* Clear the A/D ADINT0 interrupt flag */
+
+	uint8_t channel = EADC_TOTAL_CHANNELS;
+	while(channel){/* Acquire latest data from ADC, filtering out status bits*/
+
+		channel--;
+		ADC_acq_buff[channel] += (uint16_t)(EADC->DAT[channel]);/* Only keep the lowest 16 bits of the register*/
+
+	}
+
+	ADC_acq_count--;/* Decrease the number of acquisitions left to make*/
+
+    if(!ADC_acq_count){/* If zero acquisitions left to do */
+    	NVIC_DisableIRQ(EADC00_IRQn); /* Stop the interrupt */
+
     }
 
 }
