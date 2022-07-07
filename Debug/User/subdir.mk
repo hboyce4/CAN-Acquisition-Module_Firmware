@@ -5,6 +5,8 @@
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
 ../User/UI.c \
+../User/analog.c \
+../User/analog_channels.c \
 ../User/descriptors.c \
 ../User/interrupt.c \
 ../User/main.c \
@@ -13,6 +15,8 @@ C_SRCS += \
 
 OBJS += \
 ./User/UI.o \
+./User/analog.o \
+./User/analog_channels.o \
 ./User/descriptors.o \
 ./User/interrupt.o \
 ./User/main.o \
@@ -21,6 +25,8 @@ OBJS += \
 
 C_DEPS += \
 ./User/UI.d \
+./User/analog.d \
+./User/analog_channels.d \
 ./User/descriptors.d \
 ./User/interrupt.d \
 ./User/main.d \

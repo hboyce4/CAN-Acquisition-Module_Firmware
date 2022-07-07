@@ -265,7 +265,7 @@ void VCOM_PushString(char* string){
 
 void VCOM_TransferData(void)
 {
-    int32_t i, i32Len;
+    uint32_t i, i32Len;
 
     /* Check whether USB is ready for next packet or not*/
     if(gu32TxSize == 0)
@@ -303,7 +303,7 @@ void VCOM_TransferData(void)
     }
 
     /* Process the Bulk out data when bulk out data is ready. */
-    if(gi8BulkOutReady && (gu32RxSize <= TXBUFSIZE - comTbytes))
+    if(gi8BulkOutReady && (gu32RxSize <= ((uint32_t)TXBUFSIZE) - comTbytes))
     {
         for(i = 0; i < gu32RxSize; i++)
         {

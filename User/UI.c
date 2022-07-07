@@ -11,6 +11,7 @@
 #include "NuMicro.h"
 #include "vcom_serial.h"
 #include "interrupt.h"
+#include "analog.h"
 
 /*---------------------------------------------------------------------------------------------------------*/
 /* Global variables                                                                                        */
@@ -39,32 +40,41 @@ float gfVariable6 = 0;
 
 
 /* XXXus in Debug, XXXus in Release ( -O2 ) */
-void draw_UI(int8_t row_sel, int8_t col_sel){/* 60-ish characters width*/
+void UI_draw(int8_t row_sel, int8_t col_sel){/* 60-ish characters width*/
 
 	/* Cursor home : \x1B[H */
 
     /* Current state display */
-	draw_UI_title();
+	UI_draw_title();
 
 	/* Menu input*/
-	draw_UI_parameter_line_0(row_sel, col_sel);
-	draw_UI_parameter_line_1(row_sel, col_sel);
-	draw_UI_parameter_line_2(row_sel, col_sel);
-	draw_UI_parameter_line_3(row_sel, col_sel);
+	UI_draw_parameter_line_0(row_sel, col_sel);
+	UI_draw_parameter_line_1(row_sel, col_sel);
+	UI_draw_parameter_line_2(row_sel, col_sel);
+	UI_draw_parameter_line_3(row_sel, col_sel);
 
-	draw_UI_line_separator();
+	UI_draw_line_separator();
 
 	/* Draw the info page*/
 	switch(gInfoPage){ // Depending on which one is selected
 
 		case INFO_PAGE_SYS:
-			draw_UI_info_page_sys();
+			UI_draw_info_page_sys();
 			break;
 
 		case INFO_PAGE_CAN:
 			break;
 
-		case INFO_PAGE_TEMP:
+		case INFO_PAGE_PROCESS:
+			UI_draw_info_page_PV();
+			break;
+
+		case INFO_PAGE_FIELD:
+			UI_draw_info_page_FV();
+			break;
+
+		case INFO_PAGE_NOISE:
+			UI_draw_info_page_noise();
 			break;
 
 		case INFO_PAGE_HUM:
@@ -74,20 +84,22 @@ void draw_UI(int8_t row_sel, int8_t col_sel){/* 60-ish characters width*/
 			break;
 
 		default:
-			draw_UI_info_page_sys();
+			UI_draw_info_page_sys();
 			break;
 	}
 
-	draw_UI_line_separator();
+	UI_draw_line_separator();
 
 	/* Last line */
 	/* Move cursor to position 1;1 command */
 	VCOM_PushString("\x1B[1;1H");
+	/* \x1B[3J is an escape sequence that clears scrollback */
+	VCOM_PushString("\x1B[3J");
 	/* End of last line */
 
 }
 
-void read_user_input(int8_t* p_row_sel, int8_t* p_col_sel){
+void UI_read_user_input(int8_t* p_row_sel, int8_t* p_col_sel){
 
   	uint8_t user_char;
   	static uint8_t state = 0;
@@ -143,16 +155,16 @@ void read_user_input(int8_t* p_row_sel, int8_t* p_col_sel){
 		}
 
 		if(user_char == '+'){/* If a '+' is received, the selected value is incremented*/
-			increment_UI_value(*p_row_sel,*p_col_sel);
+			UI_increment_value(*p_row_sel,*p_col_sel);
 		}else if (user_char == '-'){/* If a '-' is received, the selected value is decremented*/
-			decrement_UI_value(*p_row_sel,*p_col_sel);
+			UI_decrement_value(*p_row_sel,*p_col_sel);
 		}
 		//printf("\nReceived character '0x%x' \n", user_char); /* for debug */
 
 	}
 }
 
-void increment_UI_value(int8_t row_sel, int8_t col_sel){
+void UI_increment_value(int8_t row_sel, int8_t col_sel){
 
 	switch(row_sel){
 
@@ -167,7 +179,6 @@ void increment_UI_value(int8_t row_sel, int8_t col_sel){
 
 		case 1:
 			if(col_sel == 0){
-
 				gi8Parameter1_0++;
 			}else if (col_sel == 1){
 				/*inverter_setpoints.V_DC_diff_setpoint += FLOAT_INCREMENT;*/
@@ -200,7 +211,7 @@ void increment_UI_value(int8_t row_sel, int8_t col_sel){
 
 }
 
-void decrement_UI_value(int8_t row_sel, int8_t col_sel){
+void UI_decrement_value(int8_t row_sel, int8_t col_sel){
 
 	switch(row_sel){
 
@@ -243,29 +254,29 @@ void decrement_UI_value(int8_t row_sel, int8_t col_sel){
 }
 
 
-void draw_UI_title() {
+void UI_draw_title(void){
 
-	/* \x1B[3J is an escape sequence that clears scrollback */
+
 	/* \x1B[3J is an escape sequence that clears the screen */
-	VCOM_PushString("\x1B[3J\x1B[0J************* CAN Acquisition Module *************\n\r");
+	VCOM_PushString("\x1B[0J************* CAN Acquisition Module *************\n\r");
 
 }
 
 
-void draw_UI_info_page_sys(){
+void UI_draw_info_page_sys(void){
 
 	/***************************************** First Line ********************************************/
 	char line_str[LINE_WIDTH];
 
 	uint32_t uptime = (uint32_t)(gu32SysTickIntCnt/1000); /* Uptime in seconds. Overflows after 127 years */
 
-	sprintf(line_str, "Max. VCOM Tx Buf.: %i/%i %sUptime: %i s\n\r", comTbytesMax, TXBUFSIZE, CURSOR_RIGHT_COLUMN, uptime);
+	sprintf(line_str, "Max. VCOM Tx Buf.: %i/%i %sUptime: %u s\n\r", comTbytesMax, TXBUFSIZE, CURSOR_RIGHT_COLUMN, uptime);
 
 	VCOM_PushString((char*) line_str);
 
 	/***************************************** Second Line ********************************************/
 
-	sprintf(line_str, "Max. VCOM Rx Buf.: %i/%i %sVariable 4: %i\n\r", comRbytesMax, RXBUFSIZE, CURSOR_RIGHT_COLUMN, gi8Variable4);
+	sprintf(line_str, "Max. VCOM Rx Buf.: %i/%i %sADC cal. word: %u\n\r", comRbytesMax, RXBUFSIZE, CURSOR_RIGHT_COLUMN, EADC->CALDWRD);
 
 	VCOM_PushString((char*) line_str);
 
@@ -278,18 +289,167 @@ void draw_UI_info_page_sys(){
 
 }
 
+void UI_draw_info_page_PV(void){ /* Process values */
 
 
-void draw_UI_line_separator() {
+	/***************************************** First Line ********************************************/
+	char line_str[LINE_WIDTH];
+	char left_unit_str[SHORT_STRING_LENGTH];
+	char right_unit_str[SHORT_STRING_LENGTH];
+
+	UI_get_unit_string(analog_channels[0].processUnit, left_unit_str);
+	UI_get_unit_string(analog_channels[1].processUnit, right_unit_str);
+	sprintf(line_str, "CH0: %f %s%sCH1: %f %s\n\r", analog_channels[0].processValue, left_unit_str, CURSOR_RIGHT_COLUMN, analog_channels[1].processValue, right_unit_str);
+
+	VCOM_PushString((char*) line_str);
+
+	/***************************************** Second Line ********************************************/
+	UI_get_unit_string(analog_channels[2].processUnit, left_unit_str);
+	UI_get_unit_string(analog_channels[3].processUnit, right_unit_str);
+	sprintf(line_str, "CH2: %f %s%sCH3: %f %s\n\r", analog_channels[2].processValue, left_unit_str, CURSOR_RIGHT_COLUMN, analog_channels[3].processValue, right_unit_str);
+
+	VCOM_PushString((char*) line_str);
+
+	/***************************************** Third Line ********************************************/
+	UI_get_unit_string(analog_channels[4].processUnit, left_unit_str);
+	UI_get_unit_string(analog_channels[5].processUnit, right_unit_str);
+	sprintf(line_str, "CH4: %f %s%sCH5: %f %s\n\r", analog_channels[4].processValue, left_unit_str, CURSOR_RIGHT_COLUMN, analog_channels[5].processValue, right_unit_str);
+
+	VCOM_PushString((char*) line_str);
+
+	/***************************************** Fourth Line ********************************************/
+	UI_get_unit_string(analog_channels[6].processUnit, left_unit_str);
+	UI_get_unit_string(analog_channels[7].processUnit, right_unit_str);
+	sprintf(line_str, "CH6: %f %s%sCH7: %f %s\n\r", analog_channels[6].processValue, left_unit_str, CURSOR_RIGHT_COLUMN, analog_channels[7].processValue, right_unit_str);
+
+	VCOM_PushString((char*) line_str);
+
+	/***************************************** Fifth Line ********************************************/
+	UI_get_unit_string(analog_channels[8].processUnit, left_unit_str);
+	UI_get_unit_string(analog_channels[9].processUnit, right_unit_str);
+	sprintf(line_str, "CH8: %f %s%sCH8: %f %s\n\r", analog_channels[8].processValue, left_unit_str, CURSOR_RIGHT_COLUMN, analog_channels[9].processValue, right_unit_str);
+
+	VCOM_PushString((char*) line_str);
+
+	/***************************************** Sixth Line ********************************************/
+	UI_get_unit_string(analog_channels[10].processUnit, left_unit_str);
+	UI_get_unit_string(analog_channels[11].processUnit, right_unit_str);
+	sprintf(line_str, "CH10: %f %s%sCH11: %f %s\n\r", analog_channels[10].processValue, left_unit_str, CURSOR_RIGHT_COLUMN, analog_channels[11].processValue, right_unit_str);
+
+	VCOM_PushString((char*) line_str);
+
+}
+
+void UI_draw_info_page_FV(void){ /* Field values */
+
+	/***************************************** First Line ********************************************/
+	char line_str[LINE_WIDTH];
+	char left_unit_str[SHORT_STRING_LENGTH];
+	char right_unit_str[SHORT_STRING_LENGTH];
+
+	UI_get_unit_string(analog_channels[0].fieldUnit, left_unit_str);
+	UI_get_unit_string(analog_channels[1].fieldUnit, right_unit_str);
+	sprintf(line_str, "CH0: %f %s%sCH1: %f %s\n\r", analog_channels[0].fieldValue, left_unit_str, CURSOR_RIGHT_COLUMN, analog_channels[1].fieldValue, right_unit_str);
+
+	VCOM_PushString((char*) line_str);
+
+	/***************************************** Second Line ********************************************/
+	UI_get_unit_string(analog_channels[2].fieldUnit, left_unit_str);
+	UI_get_unit_string(analog_channels[3].fieldUnit, right_unit_str);
+	sprintf(line_str, "CH2: %f %s%sCH3: %f %s\n\r", analog_channels[2].fieldValue, left_unit_str, CURSOR_RIGHT_COLUMN, analog_channels[3].fieldValue, right_unit_str);
+
+	VCOM_PushString((char*) line_str);
+
+	/***************************************** Third Line ********************************************/
+	UI_get_unit_string(analog_channels[4].fieldUnit, left_unit_str);
+	UI_get_unit_string(analog_channels[5].fieldUnit, right_unit_str);
+	sprintf(line_str, "CH4: %f %s%sCH5: %f %s\n\r", analog_channels[4].fieldValue, left_unit_str, CURSOR_RIGHT_COLUMN, analog_channels[5].fieldValue, right_unit_str);
+
+	VCOM_PushString((char*) line_str);
+
+	/***************************************** Fourth Line ********************************************/
+	UI_get_unit_string(analog_channels[6].fieldUnit, left_unit_str);
+	UI_get_unit_string(analog_channels[7].fieldUnit, right_unit_str);
+	sprintf(line_str, "CH6: %f %s%sCH7: %f %s\n\r", analog_channels[6].fieldValue, left_unit_str, CURSOR_RIGHT_COLUMN, analog_channels[7].fieldValue, right_unit_str);
+
+	VCOM_PushString((char*) line_str);
+
+	/***************************************** Third Line ********************************************/
+	UI_get_unit_string(analog_channels[8].fieldUnit, left_unit_str);
+	UI_get_unit_string(analog_channels[9].fieldUnit, right_unit_str);
+	sprintf(line_str, "CH8: %f %s%sCH9: %f %s\n\r", analog_channels[8].fieldValue, left_unit_str, CURSOR_RIGHT_COLUMN, analog_channels[9].fieldValue, right_unit_str);
+
+	VCOM_PushString((char*) line_str);
+
+	/***************************************** Fourth Line ********************************************/
+	UI_get_unit_string(analog_channels[10].fieldUnit, left_unit_str);
+	UI_get_unit_string(analog_channels[11].fieldUnit, right_unit_str);
+	sprintf(line_str, "CH10: %f %s%sCH11: %f %s\n\r", analog_channels[10].fieldValue, left_unit_str, CURSOR_RIGHT_COLUMN, analog_channels[11].fieldValue, right_unit_str);
+
+	VCOM_PushString((char*) line_str);
+
+}
+
+void UI_draw_info_page_noise(void){ /* Field values */
+
+	/***************************************** First Line ********************************************/
+	char line_str[LINE_WIDTH];
+	char left_unit_str[SHORT_STRING_LENGTH];
+	char right_unit_str[SHORT_STRING_LENGTH];
+
+	UI_get_unit_string(analog_channels[0].fieldUnit, left_unit_str);
+	UI_get_unit_string(analog_channels[1].fieldUnit, right_unit_str);
+	sprintf(line_str, "CH0: %f %s%sCH1: %f %s\n\r", analog_channels[0].noise_filtered, left_unit_str, CURSOR_RIGHT_COLUMN, analog_channels[1].noise_filtered, right_unit_str);
+
+	VCOM_PushString((char*) line_str);
+
+	/***************************************** Second Line ********************************************/
+	UI_get_unit_string(analog_channels[2].fieldUnit, left_unit_str);
+	UI_get_unit_string(analog_channels[3].fieldUnit, right_unit_str);
+	sprintf(line_str, "CH2: %f %s%sCH3: %f %s\n\r", analog_channels[2].noise_filtered, left_unit_str, CURSOR_RIGHT_COLUMN, analog_channels[3].noise_filtered, right_unit_str);
+
+	VCOM_PushString((char*) line_str);
+
+	/***************************************** Third Line ********************************************/
+	UI_get_unit_string(analog_channels[4].fieldUnit, left_unit_str);
+	UI_get_unit_string(analog_channels[5].fieldUnit, right_unit_str);
+	sprintf(line_str, "CH4: %f %s%sCH5: %f %s\n\r", analog_channels[4].noise_filtered, left_unit_str, CURSOR_RIGHT_COLUMN, analog_channels[5].noise_filtered, right_unit_str);
+
+	VCOM_PushString((char*) line_str);
+
+	/***************************************** Fourth Line ********************************************/
+	UI_get_unit_string(analog_channels[6].fieldUnit, left_unit_str);
+	UI_get_unit_string(analog_channels[7].fieldUnit, right_unit_str);
+	sprintf(line_str, "CH6: %f %s%sCH7: %f %s\n\r", analog_channels[6].noise_filtered, left_unit_str, CURSOR_RIGHT_COLUMN, analog_channels[7].noise_filtered, right_unit_str);
+
+	VCOM_PushString((char*) line_str);
+
+	/***************************************** Third Line ********************************************/
+	UI_get_unit_string(analog_channels[8].fieldUnit, left_unit_str);
+	UI_get_unit_string(analog_channels[9].fieldUnit, right_unit_str);
+	sprintf(line_str, "CH8: %f %s%sCH9: %f %s\n\r", analog_channels[8].noise_filtered, left_unit_str, CURSOR_RIGHT_COLUMN, analog_channels[9].noise_filtered, right_unit_str);
+
+	VCOM_PushString((char*) line_str);
+
+	/***************************************** Fourth Line ********************************************/
+	UI_get_unit_string(analog_channels[10].fieldUnit, left_unit_str);
+	UI_get_unit_string(analog_channels[11].fieldUnit, right_unit_str);
+	sprintf(line_str, "CH10: %f %s%sCH11: %f %s\n\r", analog_channels[10].noise_filtered, left_unit_str, CURSOR_RIGHT_COLUMN, analog_channels[11].noise_filtered, right_unit_str);
+
+	VCOM_PushString((char*) line_str);
+
+}
+
+void UI_draw_line_separator(){
 
 	VCOM_PushString("**************************************************\n\r");
 }
 
-void draw_UI_parameter_line_0(int8_t row_sel, int8_t col_sel) {
+void UI_draw_parameter_line_0(int8_t row_sel, int8_t col_sel){
 
 	char line_A_str[LINE_WIDTH];
-	char color_left_str[ESCAPE_SEQUENCE_LENGTH];
-	char color_right_str[ESCAPE_SEQUENCE_LENGTH];
+	char color_left_str[SHORT_STRING_LENGTH];
+	char color_right_str[SHORT_STRING_LENGTH];
 
 	/* Column 0 */
 	if(row_sel == 0 && col_sel == 0){
@@ -312,11 +472,11 @@ void draw_UI_parameter_line_0(int8_t row_sel, int8_t col_sel) {
 
 }
 
-void draw_UI_parameter_line_1(int8_t row_sel, int8_t col_sel){
+void UI_draw_parameter_line_1(int8_t row_sel, int8_t col_sel){
 
 	char line_B_str[LINE_WIDTH];
-	char color_left_str[ESCAPE_SEQUENCE_LENGTH];
-	char color_right_str[ESCAPE_SEQUENCE_LENGTH];
+	char color_left_str[SHORT_STRING_LENGTH];
+	char color_right_str[SHORT_STRING_LENGTH];
 
 	/* Column 0 */
 	if(row_sel == 1 && col_sel == 0){
@@ -339,11 +499,11 @@ void draw_UI_parameter_line_1(int8_t row_sel, int8_t col_sel){
 
 }
 
-void draw_UI_parameter_line_2(int8_t row_sel, int8_t col_sel){
+void UI_draw_parameter_line_2(int8_t row_sel, int8_t col_sel){
 
 	char line_C_str[LINE_WIDTH];
-	char color_left_str[ESCAPE_SEQUENCE_LENGTH];
-	char color_right_str[ESCAPE_SEQUENCE_LENGTH];
+	char color_left_str[SHORT_STRING_LENGTH];
+	char color_right_str[SHORT_STRING_LENGTH];
 
 	/* Column 0 */
 	if(row_sel == 2 && col_sel == 0){
@@ -366,7 +526,7 @@ void draw_UI_parameter_line_2(int8_t row_sel, int8_t col_sel){
 
 }
 
-void draw_UI_parameter_line_3(int8_t row_sel, int8_t col_sel){
+void UI_draw_parameter_line_3(int8_t row_sel, int8_t col_sel){
 
 	char line_D_str[LINE_WIDTH];
 
@@ -388,9 +548,18 @@ void draw_UI_parameter_line_3(int8_t row_sel, int8_t col_sel){
 			strcat(line_D_str, "CANbus");
 			break;
 
-		case INFO_PAGE_TEMP:
-			strcat(line_D_str, "Temperature");
+		case INFO_PAGE_PROCESS:
+			strcat(line_D_str, "Process values");
 			break;
+
+		case INFO_PAGE_FIELD:
+			strcat(line_D_str, "Field values unf.");
+			break;
+
+		case INFO_PAGE_NOISE:
+			strcat(line_D_str, "RMS Noise");
+			break;
+
 
 		case INFO_PAGE_HUM:
 			strcat(line_D_str, "Humidity");
@@ -412,7 +581,7 @@ void draw_UI_parameter_line_3(int8_t row_sel, int8_t col_sel){
 		strcat(line_D_str, COLOR_NOT_SELECTED);
 	}
 
-	char right_param_value_str[ESCAPE_SEQUENCE_LENGTH];
+	char right_param_value_str[SHORT_STRING_LENGTH];
 	sprintf(right_param_value_str, "%d", gi8Parameter3_1);
 
 	strcat(line_D_str, right_param_value_str);
@@ -421,6 +590,37 @@ void draw_UI_parameter_line_3(int8_t row_sel, int8_t col_sel){
 
 	VCOM_PushString((char*) line_D_str);
 
+}
+
+void UI_get_unit_string(physical_unit_t unit_type, char* string){/* Max. 8 characters long */
+
+	switch(unit_type){
+
+		case UNIT_OHM:
+			strcpy(string, "Ohm");
+			break;
+
+		case UNIT_CELSIUS:
+			strcpy(string, "degC");
+			break;
+
+		case UNIT_KELVIN:
+			strcpy(string, "K");
+			break;
+
+		case UNIT_VOLT:
+			strcpy(string, "V");
+			break;
+
+		case UNIT_MILLIVOLT:
+			strcpy(string, "mV");
+			break;
+
+		default: /*If the unit is not known */
+			strcpy(string, "");
+			break;
+
+	}
 }
 
 

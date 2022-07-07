@@ -21,50 +21,76 @@
 /* Macros           				                                                                      */
 /*---------------------------------------------------------------------------------------------------------*/
 
-//#define EADC_DMA_CHANNEL 2
-#define EADC_OVERSAMPLING_NUMBER 8 /* MAX = 16 !!! 2^EADC_SHIFT_FOR_OVERSAMPLING_DIVISION = EADC_OVERSAMPLING_NUMBER*/
-#define EADC_SHIFT_FOR_OVERSAMPLING_DIVISION 3  /* MAX = 4 !!! Log base 2 of EADC_OVERSAMPLING_NUMBER equals EADC_SHIFT_FOR_OVERSAMPLING_DIVISION */
+#define EADC_12BIT_MAX_COUNT 4096.0
+#define EADC_OVERSAMPLING_NUMBER 8 /* MAX = 16 !!! */
+#define EADC_VREF_MILLIVOLTS 1800 /*[mV] Voltage of the chip's analog voltage reference (Vref)*/
 
-#define EADC_TOTAL_CHANNELS 18 /* Total from the first to the last used channel*/
-#define EADC_TEMPERATURE_CHANNELS 8
-#define EADC_VOLTAGE_CHANNELS 4
+/* The first channel has to be 0 cause it's cleaner that way. */
+#define EADC_LAST_GP_CHANNEL 11 /* Last consecutive general purpose channel */
+#define EADC_TOTAL_CHANNELS (EADC_LAST_GP_CHANNEL + 1) /* Total number of channels */
 
 
-#define EADC_VREF_VOLTAGE 1.800 /*[V] Voltage of the chip's analog voltage reference (Vref)*/
+#define ANALOG_SAMPLE_INTERVAL_MS 100 /* [ms] Time interval for acquisition of new samples and filtering */
+#define ANALOG_SAMPLE_T (ANALOG_SAMPLE_INTERVAL_MS/1000.0) /* [s] */
+
+#define ANALOG_BIAS_RESISTOR_VALUE 6200.0 /* [Ohms] Value of the NTC biasing reistor */
+#define ANALOG_NTC_T_ZERO 298.15 /* [K] Equals 25 degree C. Temperature at which the NTC's R_Zero is measured. */
+
+#define ANALOG_VOLTAGE_GAIN 50 /* [unitless] voltage gain of the voltage inputs */
+
+#define ANALOG_LPF_TAU 10 /* [s] Amount of time after which 63% of step response is reached. TAU = R*C = 1/(2*pi*f_c) */
 
 /*---------------------------------------------------------------------------------------------------------*/
 /* Type definitions           				                                                               */
 /*---------------------------------------------------------------------------------------------------------*/
+typedef enum {UNIT_OHM, UNIT_CELSIUS, UNIT_KELVIN, UNIT_VOLT, UNIT_MILLIVOLT} physical_unit_t;
+typedef enum {SENSOR_NONE, SENSOR_NTC, SENSOR_PYRANOMETER, SENSOR_THERMOCOUPLE} sensor_t;
 
-typedef struct analog_temperatures{ /* Process values or state variables */
+typedef struct analog_channel{ /* Process values or state variables */
 
-	volatile float CH0, CH1, CH2, CH3, CH4, CH5, CH6, CH7; /* [°C] */
+	uint32_t rawValue; /* [cnt] Raw value from the converter */
+	float fieldValue;
+	float fieldValue_filtered;
+	float processValue;
 
-} analog_temperatures_t;
+	physical_unit_t fieldUnit;/* The field unit is what the sensor outputs and the acquisition module measures. Ex. Ohms or volts. */
+	physical_unit_t processUnit; /* The process unit is what the sensor measures, the unit of the process. It is what we are interested in ultimately. Ex. celsius, watt/m^2. etc. */
+	sensor_t sensorType;
 
-typedef struct analog_voltages{ /* Process values or state variables */
+	/* For NTC only */
+	float biasResistor; /* [Ohms] Value of the biasing resistor of the sensor */
+	float NTCRZero; /* [Ohms] Resistance of the NTC thermistor at 25 degrees C */
+	float NTCBeta; /* [K] Beta constant of the NTC thermistor sensor */
 
-	volatile float CH8, CH9, CH10, CH11; /* [mV] */
+	/* For voltage input (pyranometer or thermocouple) */
+	float voltageGain; /* [Unitless] Gain from the screw terminals to the ADC input. Ex. for thermocouples: 50, ex. for 0-10V: 0.15  */
+	float sensorGain; /* [mixed units] Gain of the sensor. From field unit to physical unit. */
 
-} analog_voltages_t;
+	float noise;
+	float noise_filtered;
+
+
+} analog_channel_t;
 
 /*---------------------------------------------------------------------------------------------------------*/
 /* External global variables                                                                               */
 /*---------------------------------------------------------------------------------------------------------*/
-extern volatile analog_temperatures_t analog_temperatures; /* [°C] */
-extern volatile analog_voltages_t analog_voltages;/* [mV] */
 
-// extern volatile uint16_t ADC_acq_buff[EADC_TOTAL_CHANNELS];
-// extern volatile uint8_t ADC_acq_count;
+extern volatile analog_channel_t analog_channels[EADC_TOTAL_CHANNELS];
 
 /*---------------------------------------------------------------------------------------------------------*/
 /* Functions declaration                                                                              */
 /*---------------------------------------------------------------------------------------------------------*/
 
-void ADC_RunCal(void);
+void ADC_Init(void);
 
-void ADC_ServiceOversampling(void);
+void ADC_StartAcquisition(void);
+void ADC_StartAcquisition_ChipTemp(void);
 
-void ADC_ConvertToFloat(void);
+void Analog_Acquire(void);
+void Analog_ConvertToFieldValue(void);
+void Analog_FilterFieldValues(void);
+void Analog_FilterNoise(void);
+void Analog_ConvertToProcessValues(void);
 
 #endif /* ANALOG_H_ */

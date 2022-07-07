@@ -23,6 +23,8 @@ volatile uint8_t gu8PcTerminalActive_TimeoutCounter = 0;
 
 volatile bool gbDrawNewUIFrame = false;
 
+volatile bool gbSampleAnalog = false;
+
 
 /* Most important interrupt */
 void SysTick_Handler(void)	// Every millisecond (Medium frequency).
@@ -51,6 +53,13 @@ void SysTick_Handler(void)	// Every millisecond (Medium frequency).
     	gbSecondsFlag = true;
     }
     u16SecondsCounter--; // Decrease the counter every time SysTick_Handler is called
+
+    static uint16_t u16AnalogSampleCounter = ANALOG_SAMPLE_INTERVAL_MS;
+	if(!u16AnalogSampleCounter){// If counter has elapsed (equals zero)
+		u16AnalogSampleCounter = ANALOG_SAMPLE_INTERVAL_MS;//Reload counter.
+		gbSampleAnalog = true;
+	}
+	u16AnalogSampleCounter--; // Decrease the counter every time SysTick_Handler is called
 
 }
 
@@ -212,23 +221,51 @@ void USBD_IRQHandler(void)
 
 }
 
-void EADC00_IRQHandler(void){ /* Very high frequency interrupt. Keep very light!!! */
+void EADC00_IRQHandler(void){ /* Interrupt for general channels */
+
+	extern volatile uint16_t ADC_acq_buff[EADC_TOTAL_CHANNELS];
+	extern volatile uint8_t ADC_acq_count;
+	extern volatile bool ADC_acq_done;
+	extern volatile bool ADC_first_acq;
 
     EADC_CLR_INT_FLAG(EADC, EADC_STATUS2_ADIF0_Msk);      /* Clear the A/D ADINT0 interrupt flag */
 
-	uint8_t channel = EADC_TOTAL_CHANNELS;
-	while(channel){/* Acquire latest data from ADC, filtering out status bits*/
+    uint8_t channel;
 
-		channel--;
-		ADC_acq_buff[channel] += (uint16_t)(EADC->DAT[channel]);/* Only keep the lowest 16 bits of the register*/
+    if(ADC_first_acq){ /* If it's the first series of acquisition after the start*/
+    	ADC_first_acq = false;/* Do nothing, the data is bad, we must discard it. */
+    }else{/* Else the data is good, store it in the acq buff */
 
-	}
-
-	ADC_acq_count--;/* Decrease the number of acquisitions left to make*/
+    	for(channel = 0; channel <= EADC_LAST_GP_CHANNEL;channel++){/* For every channel */
+			ADC_acq_buff[channel] += (uint16_t)(EADC->DAT[channel]);/* Only keep the lowest 16 bits of the register*/
+		}
+		ADC_acq_count--;/* Decrease the number of acquisitions left to make*/
+    }
 
     if(!ADC_acq_count){/* If zero acquisitions left to do */
-    	NVIC_DisableIRQ(EADC00_IRQn); /* Stop the interrupt */
 
+		for(channel = 0; channel <= EADC_LAST_GP_CHANNEL;channel++){/* For every channel */
+
+			analog_channels[channel].rawValue = ADC_acq_buff[channel]; /* Copy the acquisition buffer, dividing by the number of oversamples. */
+
+			ADC_acq_buff[channel] = 0; /* Clear the acquisition buffer */
+		}
+
+		ADC_acq_done = true; /* Raise the flag signaling that the acquisition is finished. */
+
+    	EADC_STOP_CONV(EADC, BIT11);
+    	EADC_DISABLE_SAMPLE_MODULE_INT(EADC, 0, BIT11);/*Disable sample module 11 interrupt. It will be the last to acquire, so it will be the one
+    		    												that generates the interrupt */
+    	NVIC_DisableIRQ(EADC00_IRQn); /* Stop the interrupt */
+    	EADC_CLR_INT_FLAG(EADC, EADC_STATUS2_ADIF0_Msk);      /* Clear the A/D ADINT0 interrupt flag */
     }
 
 }
+
+void EADC01_IRQHandler(void){ /* Interrupt for temperature sensor channel */
+
+	EADC_CLR_INT_FLAG(EADC, EADC_STATUS2_ADIF1_Msk);      /* Clear the A/D ADINT0 interrupt flag */
+
+
+}
+

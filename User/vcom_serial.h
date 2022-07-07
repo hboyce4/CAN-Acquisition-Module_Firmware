@@ -55,6 +55,7 @@
 /* Define the timeout of PC terminal */
 #define PC_TERMINAL_TIMEOUT_MS 2 /* Number of milliseconds after which we consider the terminal has been closed if we stop receiving IN packets. Max. 255*/
 
+#define SHORT_STRING_LENGTH 16 /* Used for short strings such as escape sequences (colors, commands, etc)*/
 
 /************************************************/
 /* for CDC class */

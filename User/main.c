@@ -13,12 +13,14 @@
 #include "vcom_serial.h"
 #include "sys.h"
 #include "UI.h"
+#include "analog.h"
 
 
 
 void SYS_Init(void)
 {
-    /* Unlock protected registers */
+	/* Start of protected registers */
+	/* Unlock protected registers */
     SYS_UnlockReg();
 
     /* Set XT1_OUT(PF.2) and XT1_IN(PF.3) to input mode */
@@ -37,6 +39,7 @@ void SYS_Init(void)
     CLK_SetCoreClock(FREQ_192MHZ);
 
     /* Set both PCLK0 and PCLK1 as HCLK/4. PCLK0 = PCLK 1 = HCLK/4 = 192 MHz/4 = 48 MHz   */
+    /* "PCLK must be less than 96 MHz." TRM Rev 3.02 page 614 */
     CLK->PCLKDIV = CLK_PCLKDIV_APB0DIV_DIV4 | CLK_PCLKDIV_APB1DIV_DIV4;
 
 
@@ -64,16 +67,21 @@ void SYS_Init(void)
     /* EADC_CLK = PCLK/1 = 48MHz/1 = 48 MHz. (72 MHz max as per TRM) */
     /* Enable IP clock */
     CLK_EnableModuleClock(EADC_MODULE);
+    SYS_SetVRef(SYS_VREFCTL_VREF_PIN); /* Set the voltage reference as the external pin. */
     /***************************** EADC End *************************************/
 
 
     /***************************** SysTick ***************************************/
     /* Update System Core Clock */
     SystemCoreClockUpdate();
-    /* SysTick 1m second interrupts  */
+    /* SysTick 1 millisecond interrupts  */
     SysTick_Config(SystemCoreClock / 1000); /* SysTick is driven by CPU Clock */
     NVIC_SetPriority(SysTick_IRQn, 1);// Set the interrupt priority.
     /***************************** SysTick End ***********************************/
+
+    /* End of protected registers */
+    /* Lock protected registers */
+    SYS_LockReg();
 
     /* Set PA.12 ~ PA.14 (Full Speed USB pins)to input mode */
     PA->MODE &= ~(GPIO_MODE_MODE12_Msk | GPIO_MODE_MODE13_Msk | GPIO_MODE_MODE14_Msk);
@@ -90,7 +98,6 @@ void SYS_Init(void)
 	GPIO_SetMode(PB, BIT13|BIT14|BIT15, GPIO_MODE_OUTPUT); // Set LED pins as outputs.
 
 	/* EADC */
-	SYS->IVSCTL |= SYS_IVSCTL_VTEMPEN_Msk; /* Enable temperature sensor */
 	 /* EADC: Set PB.0 ~ PB.11 to input mode */
 	GPIO_SetMode(PB, BIT11|BIT10|BIT9|BIT8|BIT7|BIT6|BIT5|BIT4|BIT3|BIT2|BIT1|BIT0, GPIO_MODE_INPUT);/* Cleared to 0b00 is input */
 	GPIO_DISABLE_DIGITAL_PATH(PB, BIT11|BIT10|BIT9|BIT8|BIT7|BIT6|BIT5|BIT4|BIT3|BIT2|BIT1|BIT0);/* Disable digital input paths to reduce leakage currents. */
@@ -104,13 +111,8 @@ void SYS_Init(void)
 	SYS->GPB_MFPH &= ~(SYS_GPB_MFPH_PB8MFP_Msk | SYS_GPB_MFPH_PB9MFP_Msk | SYS_GPB_MFPH_PB10MFP_Msk | SYS_GPB_MFPH_PB11MFP_Msk);
 	SYS->GPB_MFPH |= (SYS_GPB_MFPH_PB8MFP_EADC0_CH8 | SYS_GPB_MFPH_PB9MFP_EADC0_CH9 | SYS_GPB_MFPH_PB10MFP_EADC0_CH10 | SYS_GPB_MFPH_PB11MFP_EADC0_CH11);
 
-
-
-    /* Lock protected registers */
-    SYS_LockReg();
 }
 
-/* Brown-out detector to be set to 2.4V */
 
 int main (void)
 {
@@ -120,7 +122,7 @@ int main (void)
     UART_Open(UART0, 115200); // Debug port. printf() is piped to this.
     printf("CAN Acquisition Module - Debug port\n");
 
-
+    ADC_Init();
 
     /* Initialize virtual COM port (over USB) */
     VCOM_Init();
@@ -133,17 +135,21 @@ int main (void)
 
     while(1)
     {
+    	// All the time
         VCOM_TransferData();
 
-
         int8_t i8RowSel, i8ColumnSel;
-        read_user_input(&i8RowSel,&i8ColumnSel);
+        UI_read_user_input(&i8RowSel,&i8ColumnSel);
+
 
         if(gbDrawNewUIFrame){// Every UI_FRAME_INTERVAL_MS milliseconds
         	gbDrawNewUIFrame = false;
 
         	if(gbTerminalActive){
-        		draw_UI(i8RowSel, i8ColumnSel);
+        		UI_draw(i8RowSel, i8ColumnSel);
+
+
+
         	}
 
         }
@@ -151,6 +157,9 @@ int main (void)
         if(gbSecondsFlag){// Every second
         	gbSecondsFlag = false;// Clear the flag
         	// Do things that need to be done every second
+
+        	ADC_StartAcquisition(); /* Run an acquisition every second */
+
 
         	PB->DOUT &= ~(BIT13|BIT14|BIT15);
         	PB->DOUT |= (u8LEDState << 13);
@@ -160,6 +169,15 @@ int main (void)
         		u8LEDState =0;
         	}
         }
+
+        if(gbSampleAnalog){
+        	gbSampleAnalog = false;
+
+        	Analog_Acquire(); /* Sample analog inputs */
+
+        }
+
+
     }
 
 
