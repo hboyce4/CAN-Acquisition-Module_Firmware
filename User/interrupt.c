@@ -11,6 +11,7 @@
 #include "UI.h"
 #include "vcom_serial.h"
 #include "analog.h"
+#include "I2C_sensors.h"
 
 
 /* SysTick */
@@ -269,3 +270,24 @@ void EADC01_IRQHandler(void){ /* Interrupt for temperature sensor channel */
 
 }
 
+/*---------------------------------------------------------------------------------------------------------*/
+/*  I2C0 IRQ Handler                                                                                       */
+/*---------------------------------------------------------------------------------------------------------*/
+void I2C0_IRQHandler(void)
+{
+    uint32_t u32Status;
+
+    u32Status = I2C_GET_STATUS(I2C0);
+
+    if (I2C_GET_TIMEOUT_FLAG(I2C0))
+    {
+        /* Clear I2C0 Timeout Flag */
+        I2C_ClearTimeoutFlag(I2C0);
+    }
+    else
+    {
+    	extern static volatile I2C_FUNC s_I2C0HandlerFn; /* Defined in I2C_sensors.h/.c */
+    	if (s_I2C0HandlerFn != NULL)
+            s_I2C0HandlerFn(u32Status);
+    }
+}

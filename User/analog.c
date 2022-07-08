@@ -60,7 +60,9 @@ void ADC_Init(void){
 void ADC_StartAcquisition(void){
 
 	/******************** Calibration ************************************/
+	// Re-calibrating every time increases measurement noise but probably reduces the thermal variations
 	//volatile uint32_t cycles_cnt = 0;
+	CLK->CLKDIV0 &= ~CLK_CLKDIV0_EADCDIV_Msk; /* Clear EADCDIV to zero for calibration as per TRM. */
 	EADC->CALCTL |= EADC_CALCTL_CALSEL_Msk; /* Sel CALSEL bit so calibration is performed when we start it. */
 	EADC->CALCTL |= EADC_CALCTL_CALSTART_Msk; /* Set the CALSTART to begin calibration*/
 	while(!(EADC->CALCTL & EADC_CALCTL_CALDONE_Msk)){/* While the CALDONE bit is not set*/
@@ -68,6 +70,8 @@ void ADC_StartAcquisition(void){
 		//cycles_cnt++;/* Wait and increment a counter. Usually takes 25 cycles*/
 	}
 	/******************** Calibration end ********************************/
+
+	//CLK->CLKDIV0 |= CLK_CLKDIV0_EADC(10); /* Set clkdiv to 10 for acquisition */
 
 	/* Start ADC acquisition batch*/
 	ADC_acq_count = EADC_OVERSAMPLING_NUMBER;
@@ -188,8 +192,10 @@ void Analog_FilterFieldValues(void){
 void Analog_FilterNoise(void){
 
 	static bool firstRun = true; /* Flag initialized to true */
-	static float noise_prev[EADC_TOTAL_CHANNELS] = {0}; /* Explicitly initialized to 0 even if its guaranteed by the C standard */
-	static float noise_filtered_prev[EADC_TOTAL_CHANNELS] = {0};
+	static float squaredNoise_inst[EADC_TOTAL_CHANNELS] = {0};
+	static float squaredNoise_inst_prev[EADC_TOTAL_CHANNELS] = {0}; /* Explicitly initialized to 0 even if its guaranteed by the C standard */
+	static float squaredNoise_filtered[EADC_TOTAL_CHANNELS] = {0};
+	static float squaredNoise_filtered_prev[EADC_TOTAL_CHANNELS] = {0};
 
 	uint8_t i;/* i will be the channel number */
 	for(i = 0; i <= EADC_LAST_GP_CHANNEL; i++){/* For every channel */
@@ -197,10 +203,12 @@ void Analog_FilterNoise(void){
 
 		/* Calculate noise */
 
-		analog_channels[i].noise = powf(fabsf(analog_channels[i].fieldValue - analog_channels[i].fieldValue_filtered),2);
+		float err;
+		err = (analog_channels[i].fieldValue - analog_channels[i].fieldValue_filtered);/* The difference between the averaged and instantaneous value is the error. */
+		squaredNoise_inst[i] = err * err; /* noise is the error squared. */
 
 		if(firstRun){/* If the function has never been run before */
-			analog_channels[i].noise_filtered = analog_channels[i].noise; /* Just copy the values*/
+			squaredNoise_filtered[i] = squaredNoise_inst[i]; /* Just copy the values*/
 		}else{/* For every execution thereafter */
 			/* Run filter */
 
@@ -215,12 +223,14 @@ void Analog_FilterNoise(void){
 
 			float ct;
 			ct = (2 * 1.0 / ANALOG_SAMPLE_T); /* Tau = 1.0 */
-			analog_channels[i].noise_filtered = (analog_channels[i].noise + noise_prev[i] - noise_filtered_prev[i] + (noise_filtered_prev[i] * ct)) / (1 + ct);
+			squaredNoise_filtered[i] = (squaredNoise_inst[i] + squaredNoise_inst_prev[i] - squaredNoise_filtered_prev[i] + (squaredNoise_filtered_prev[i] * ct)) / (1 + ct);
 
 		}
 
-		noise_prev[i] = analog_channels[i].noise; /* Current values become previous values, for the next iteration. */
-		noise_filtered_prev[i] = analog_channels[i].noise_filtered;
+		analog_channels[i].RMSNoise = sqrtf(squaredNoise_filtered[i]);
+		
+		squaredNoise_inst_prev[i] = squaredNoise_inst[i]; /* Current values become previous values, for the next iteration. */
+		squaredNoise_filtered_prev[i] = squaredNoise_filtered[i];
 
 	}
 	firstRun = false; /* After the function has been run at least once, this flag goes false*/

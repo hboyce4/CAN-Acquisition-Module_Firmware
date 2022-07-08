@@ -12,6 +12,7 @@
 #include "vcom_serial.h"
 #include "interrupt.h"
 #include "analog.h"
+#include "sys.h"
 
 /*---------------------------------------------------------------------------------------------------------*/
 /* Global variables                                                                                        */
@@ -19,7 +20,7 @@
 
 info_page_state_t gInfoPage = 0; /* Track which page we're on*/
 
-
+/* Dummy placeholder variables for future expansion */
 int8_t gi8Parameter0_0 = 0;
 int8_t gi8Parameter0_1 = 0;
 int8_t gi8Parameter1_0 = 0;
@@ -28,11 +29,6 @@ int8_t gi8Parameter2_0 = 0;
 int8_t gi8Parameter2_1 = 0;
 int8_t gi8Parameter3_1 = 0;
 
-
-/* Dummy placeholder variables for future expansion */
-
-int8_t gi8Variable4 = 0;
-float gfVariable6 = 0;
 
 /*---------------------------------------------------------------------------------------------------------*/
 /* Function definitions                                                                                    */
@@ -283,7 +279,7 @@ void UI_draw_info_page_sys(void){
 	/***************************************** Third Line ********************************************/
 	uint32_t u32LEDStatus = (PB->PIN & (BIT13|BIT14|BIT15));
 	u32LEDStatus >>= 13;
-	sprintf(line_str, "LED status: %u %sVariable 6: %2.2f V\n\r", u32LEDStatus, CURSOR_RIGHT_COLUMN, gfVariable6);
+	sprintf(line_str, "LED status: %u %sDebug UART Speed: %i bps\n\r", u32LEDStatus, CURSOR_RIGHT_COLUMN, DEBUG_UART_SPEED);
 
 	VCOM_PushString((char*) line_str);
 
@@ -399,42 +395,42 @@ void UI_draw_info_page_noise(void){ /* Field values */
 
 	UI_get_unit_string(analog_channels[0].fieldUnit, left_unit_str);
 	UI_get_unit_string(analog_channels[1].fieldUnit, right_unit_str);
-	sprintf(line_str, "CH0: %f %s%sCH1: %f %s\n\r", analog_channels[0].noise_filtered, left_unit_str, CURSOR_RIGHT_COLUMN, analog_channels[1].noise_filtered, right_unit_str);
+	sprintf(line_str, "CH0: %f %s%sCH1: %f %s\n\r", analog_channels[0].RMSNoise, left_unit_str, CURSOR_RIGHT_COLUMN, analog_channels[1].RMSNoise, right_unit_str);
 
 	VCOM_PushString((char*) line_str);
 
 	/***************************************** Second Line ********************************************/
 	UI_get_unit_string(analog_channels[2].fieldUnit, left_unit_str);
 	UI_get_unit_string(analog_channels[3].fieldUnit, right_unit_str);
-	sprintf(line_str, "CH2: %f %s%sCH3: %f %s\n\r", analog_channels[2].noise_filtered, left_unit_str, CURSOR_RIGHT_COLUMN, analog_channels[3].noise_filtered, right_unit_str);
+	sprintf(line_str, "CH2: %f %s%sCH3: %f %s\n\r", analog_channels[2].RMSNoise, left_unit_str, CURSOR_RIGHT_COLUMN, analog_channels[3].RMSNoise, right_unit_str);
 
 	VCOM_PushString((char*) line_str);
 
 	/***************************************** Third Line ********************************************/
 	UI_get_unit_string(analog_channels[4].fieldUnit, left_unit_str);
 	UI_get_unit_string(analog_channels[5].fieldUnit, right_unit_str);
-	sprintf(line_str, "CH4: %f %s%sCH5: %f %s\n\r", analog_channels[4].noise_filtered, left_unit_str, CURSOR_RIGHT_COLUMN, analog_channels[5].noise_filtered, right_unit_str);
+	sprintf(line_str, "CH4: %f %s%sCH5: %f %s\n\r", analog_channels[4].RMSNoise, left_unit_str, CURSOR_RIGHT_COLUMN, analog_channels[5].RMSNoise, right_unit_str);
 
 	VCOM_PushString((char*) line_str);
 
 	/***************************************** Fourth Line ********************************************/
 	UI_get_unit_string(analog_channels[6].fieldUnit, left_unit_str);
 	UI_get_unit_string(analog_channels[7].fieldUnit, right_unit_str);
-	sprintf(line_str, "CH6: %f %s%sCH7: %f %s\n\r", analog_channels[6].noise_filtered, left_unit_str, CURSOR_RIGHT_COLUMN, analog_channels[7].noise_filtered, right_unit_str);
+	sprintf(line_str, "CH6: %f %s%sCH7: %f %s\n\r", analog_channels[6].RMSNoise, left_unit_str, CURSOR_RIGHT_COLUMN, analog_channels[7].RMSNoise, right_unit_str);
 
 	VCOM_PushString((char*) line_str);
 
 	/***************************************** Third Line ********************************************/
 	UI_get_unit_string(analog_channels[8].fieldUnit, left_unit_str);
 	UI_get_unit_string(analog_channels[9].fieldUnit, right_unit_str);
-	sprintf(line_str, "CH8: %f %s%sCH9: %f %s\n\r", analog_channels[8].noise_filtered, left_unit_str, CURSOR_RIGHT_COLUMN, analog_channels[9].noise_filtered, right_unit_str);
+	sprintf(line_str, "CH8: %f %s%sCH9: %f %s\n\r", analog_channels[8].RMSNoise, left_unit_str, CURSOR_RIGHT_COLUMN, analog_channels[9].RMSNoise, right_unit_str);
 
 	VCOM_PushString((char*) line_str);
 
 	/***************************************** Fourth Line ********************************************/
 	UI_get_unit_string(analog_channels[10].fieldUnit, left_unit_str);
 	UI_get_unit_string(analog_channels[11].fieldUnit, right_unit_str);
-	sprintf(line_str, "CH10: %f %s%sCH11: %f %s\n\r", analog_channels[10].noise_filtered, left_unit_str, CURSOR_RIGHT_COLUMN, analog_channels[11].noise_filtered, right_unit_str);
+	sprintf(line_str, "CH10: %f %s%sCH11: %f %s\n\r", analog_channels[10].RMSNoise, left_unit_str, CURSOR_RIGHT_COLUMN, analog_channels[11].RMSNoise, right_unit_str);
 
 	VCOM_PushString((char*) line_str);
 

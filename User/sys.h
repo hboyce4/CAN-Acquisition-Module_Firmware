@@ -10,6 +10,8 @@
 
 #include <stdint.h>
 
+#define DEBUG_UART_SPEED 115200
+
 void delay_ms(uint32_t);
 
 #endif /* SYS_H_ */

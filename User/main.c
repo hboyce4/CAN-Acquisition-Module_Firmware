@@ -70,6 +70,10 @@ void SYS_Init(void)
     SYS_SetVRef(SYS_VREFCTL_VREF_PIN); /* Set the voltage reference as the external pin. */
     /***************************** EADC End *************************************/
 
+    /***************************** I2C0 *****************************************/
+    /* Enable I2C0 clock */
+    CLK_EnableModuleClock(I2C0_MODULE);
+    /***************************** I2C0 End *************************************/
 
     /***************************** SysTick ***************************************/
     /* Update System Core Clock */
@@ -97,7 +101,7 @@ void SYS_Init(void)
 	SYS->GPB_MFPH |= (SYS_GPB_MFPH_PB13MFP_GPIO | SYS_GPB_MFPH_PB14MFP_GPIO | SYS_GPB_MFPH_PB15MFP_GPIO);// Set Multifunction pin (MFP) as GPIO
 	GPIO_SetMode(PB, BIT13|BIT14|BIT15, GPIO_MODE_OUTPUT); // Set LED pins as outputs.
 
-	/* EADC */
+	/***************************** EADC *****************************************/
 	 /* EADC: Set PB.0 ~ PB.11 to input mode */
 	GPIO_SetMode(PB, BIT11|BIT10|BIT9|BIT8|BIT7|BIT6|BIT5|BIT4|BIT3|BIT2|BIT1|BIT0, GPIO_MODE_INPUT);/* Cleared to 0b00 is input */
 	GPIO_DISABLE_DIGITAL_PATH(PB, BIT11|BIT10|BIT9|BIT8|BIT7|BIT6|BIT5|BIT4|BIT3|BIT2|BIT1|BIT0);/* Disable digital input paths to reduce leakage currents. */
@@ -110,6 +114,17 @@ void SYS_Init(void)
 				 SYS_GPB_MFPL_PB7MFP_EADC0_CH7);
 	SYS->GPB_MFPH &= ~(SYS_GPB_MFPH_PB8MFP_Msk | SYS_GPB_MFPH_PB9MFP_Msk | SYS_GPB_MFPH_PB10MFP_Msk | SYS_GPB_MFPH_PB11MFP_Msk);
 	SYS->GPB_MFPH |= (SYS_GPB_MFPH_PB8MFP_EADC0_CH8 | SYS_GPB_MFPH_PB9MFP_EADC0_CH9 | SYS_GPB_MFPH_PB10MFP_EADC0_CH10 | SYS_GPB_MFPH_PB11MFP_EADC0_CH11);
+	/***************************** EADC End *************************************/
+
+	/***************************** I2C0 *****************************************/
+	/* Set I2C0 multi-function pins */
+	SYS->GPC_MFPL = (SYS->GPC_MFPL & ~(SYS_GPC_MFPL_PC0MFP_Msk | SYS_GPC_MFPL_PC1MFP_Msk)) |
+					(SYS_GPC_MFPL_PC0MFP_I2C0_SDA | SYS_GPC_MFPL_PC1MFP_I2C0_SCL);
+	/* I2C pin enable schmitt trigger */
+	PC->SMTEN |= GPIO_SMTEN_SMTEN0_Msk | GPIO_SMTEN_SMTEN1_Msk;
+	/* Enable Pull-ups so NACKs can be observed of I2C components are not populated */
+	GPIO_SetPullCtl(PC, BIT1|BIT0, GPIO_PUSEL_PULL_UP);
+	/***************************** I2C0 End *************************************/
 
 }
 
@@ -119,7 +134,7 @@ int main (void)
 
     SYS_Init();
 
-    UART_Open(UART0, 115200); // Debug port. printf() is piped to this.
+    UART_Open(UART0, DEBUG_UART_SPEED); // Debug port. printf() is piped to this.
     printf("CAN Acquisition Module - Debug port\n");
 
     ADC_Init();
@@ -130,6 +145,10 @@ int main (void)
     //NVIC_EnableIRQ(UART0_IRQn);
 
     NVIC_EnableIRQ(USBD_IRQn);
+
+    /* Init I2C0 */
+    I2C0_Init();
+
 
     uint8_t u8LEDState = 0;
 

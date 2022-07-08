@@ -66,8 +66,7 @@ typedef struct analog_channel{ /* Process values or state variables */
 	float voltageGain; /* [Unitless] Gain from the screw terminals to the ADC input. Ex. for thermocouples: 50, ex. for 0-10V: 0.15  */
 	float sensorGain; /* [mixed units] Gain of the sensor. From field unit to physical unit. */
 
-	float noise;
-	float noise_filtered;
+	float RMSNoise; /* RMS measurement noise of the fieldValue. */
 
 
 } analog_channel_t;
