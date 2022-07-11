@@ -157,9 +157,9 @@ void Analog_FilterFieldValues(void){
 	uint8_t i;/* i will be the channel number */
 	for(i = 0; i <= EADC_LAST_GP_CHANNEL; i++){/* For every channel */
 
-		if(analog_channels[i].fieldValue <= 0){
-			printf("Negative\n\r");
-		}
+		//if(analog_channels[i].fieldValue <= 0){
+		//	printf("Negative\n\r");
+		//}
 
 		if(firstRun){/* If the function has never been run before */
 			analog_channels[i].fieldValue_filtered = analog_channels[i].fieldValue; /* Just copy the values*/

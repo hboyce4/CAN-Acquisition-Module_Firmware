@@ -1,5 +1,4 @@
-/*
- * I2C_sensors.c
+/* I2C_sensors.c
  *
  *  Created on: Jul 8, 2022
  *      Author: Hugo Boyce
@@ -15,114 +14,23 @@
  *
  ******************************************************************************/
 #include <stdio.h>
+#include <stdbool.h>
 #include "NuMicro.h"
 #include "I2C_sensors.h"
 
 /*---------------------------------------------------------------------------------------------------------*/
 /* Global variables                                                                                        */
 /*---------------------------------------------------------------------------------------------------------*/
-uint8_t g_u8DeviceAddr;
-uint8_t g_au8TxData[3];
-volatile uint8_t g_u8RxData;
+volatile uint8_t g_u8DeviceAddr;
+volatile uint8_t g_au8Data[I2C_DATA_BUFF_LEN];
 volatile uint8_t g_u8DataLen;
-volatile uint8_t g_u8EndFlag = 0;
+volatile uint8_t g_u8Index;
+volatile bool g_bEndFlag = false;
+volatile bool g_bReceiving = false;
 
 //typedef void (*I2C_FUNC)(uint32_t u32Status);
 
-static volatile I2C_FUNC s_I2C0HandlerFn = NULL;
-
-
-/*---------------------------------------------------------------------------------------------------------*/
-/*  I2C Rx Callback Function                                                                               */
-/*---------------------------------------------------------------------------------------------------------*/
-void I2C_MasterRx(uint32_t u32Status)
-{
-    if (u32Status == 0x08)                      /* START has been transmitted and prepare SLA+W */
-    {
-        I2C_SET_DATA(I2C0, (g_u8DeviceAddr << 1)); /* Write SLA+W to Register I2CDAT */
-        I2C_SET_CONTROL_REG(I2C0, I2C_CTL_SI);
-    }
-    else if (u32Status == 0x18)                 /* SLA+W has been transmitted and ACK has been received */
-    {
-        I2C_SET_DATA(I2C0, g_au8TxData[g_u8DataLen++]);
-        I2C_SET_CONTROL_REG(I2C0, I2C_CTL_SI);
-    }
-    else if (u32Status == 0x20)                 /* SLA+W has been transmitted and NACK has been received */
-    {
-        I2C_SET_CONTROL_REG(I2C0, I2C_CTL_STA | I2C_CTL_STO | I2C_CTL_SI);
-    }
-    else if (u32Status == 0x28)                 /* DATA has been transmitted and ACK has been received */
-    {
-        if (g_u8DataLen != 2)
-        {
-            I2C_SET_DATA(I2C0, g_au8TxData[g_u8DataLen++]);
-            I2C_SET_CONTROL_REG(I2C0, I2C_CTL_SI);
-        }
-        else
-        {
-            I2C_SET_CONTROL_REG(I2C0, I2C_CTL_STA | I2C_CTL_SI);
-        }
-    }
-    else if (u32Status == 0x10)                 /* Repeat START has been transmitted and prepare SLA+R */
-    {
-        I2C_SET_DATA(I2C0, (g_u8DeviceAddr << 1) | 0x01);  /* Write SLA+R to Register I2CDAT */
-        I2C_SET_CONTROL_REG(I2C0, I2C_CTL_SI);
-    }
-    else if (u32Status == 0x40)                 /* SLA+R has been transmitted and ACK has been received */
-    {
-        I2C_SET_CONTROL_REG(I2C0, I2C_CTL_SI);
-    }
-    else if (u32Status == 0x58)                 /* DATA has been received and NACK has been returned */
-    {
-        g_u8RxData = I2C_GET_DATA(I2C0);
-        I2C_SET_CONTROL_REG(I2C0, I2C_CTL_STO | I2C_CTL_SI);
-        g_u8EndFlag = 1;
-    }
-    else
-    {
-        /* TO DO */
-        printf("Status 0x%x is NOT processed\n", u32Status);
-    }
-}
-
-/*---------------------------------------------------------------------------------------------------------*/
-/*  I2C Tx Callback Function                                                                               */
-/*---------------------------------------------------------------------------------------------------------*/
-void I2C_MasterTx(uint32_t u32Status)
-{
-    if (u32Status == 0x08)                      /* START has been transmitted */
-    {
-        I2C_SET_DATA(I2C0, g_u8DeviceAddr << 1);  /* Write SLA+W to Register I2CDAT */
-        I2C_SET_CONTROL_REG(I2C0, I2C_CTL_SI);
-    }
-    else if (u32Status == 0x18)                 /* SLA+W has been transmitted and ACK has been received */
-    {
-        I2C_SET_DATA(I2C0, g_au8TxData[g_u8DataLen++]);
-        I2C_SET_CONTROL_REG(I2C0, I2C_CTL_SI);
-    }
-    else if (u32Status == 0x20)                 /* SLA+W has been transmitted and NACK has been received */
-    {
-        I2C_SET_CONTROL_REG(I2C0, I2C_CTL_STA | I2C_CTL_STO | I2C_CTL_SI);
-    }
-    else if (u32Status == 0x28)                 /* DATA has been transmitted and ACK has been received */
-    {
-        if (g_u8DataLen != 3)
-        {
-            I2C_SET_DATA(I2C0, g_au8TxData[g_u8DataLen++]);
-            I2C_SET_CONTROL_REG(I2C0, I2C_CTL_SI);
-        }
-        else
-        {
-            I2C_SET_CONTROL_REG(I2C0, I2C_CTL_STO | I2C_CTL_SI);
-            g_u8EndFlag = 1;
-        }
-    }
-    else
-    {
-        /* TO DO */
-        printf("Status 0x%x is NOT processed\n", u32Status);
-    }
-}
+//static volatile I2C_FUNC s_I2C0HandlerFn = NULL;
 
 
 void I2C0_Init(void)
@@ -137,91 +45,90 @@ void I2C0_Init(void)
     NVIC_EnableIRQ(I2C0_IRQn);
 }
 
-int32_t Read_Write_SLAVE(uint8_t slvaddr)
-{
-    uint32_t i;
 
-    g_u8DeviceAddr = slvaddr;
+/* adr is the 7-bit device address i.e. without the 8th (R/W) bit. */
+/* cmd is a 16 bit command sent before receiving */
+/* exp_data_len is the number of bytes the master expects to receive (i.e. the nb of bytes we will ACK). */
+/* This uses repeated start */
 
-    for (i = 0; i < 0x100; i++)
-    {
-        g_au8TxData[0] = (uint8_t)((i & 0xFF00) >> 8);
-        g_au8TxData[1] = (uint8_t)(i & 0x00FF);
-        g_au8TxData[2] = (uint8_t)(g_au8TxData[1] + 3);
+void I2C_sensorReceiveWithCommand(uint8_t adr, uint16_t cmd, uint8_t exp_data_len){
 
-        g_u8DataLen = 0;
-        g_u8EndFlag = 0;
+	g_bReceiving = true;
 
-        /* I2C function to write data to slave */
-        s_I2C0HandlerFn = (I2C_FUNC)I2C_MasterTx;
+	g_u8DeviceAddr = adr;
 
-        /* I2C as master sends START signal */
-        I2C_SET_CONTROL_REG(I2C0, I2C_CTL_STA);
+	g_au8Data[0] = (uint8_t)((cmd & 0xFF00) >> 8); /* Command MSB placed as the first data byte to transmit */
+	g_au8Data[1] = (uint8_t)(cmd & 0x00FF); /* Command LSB placed as the second data byte to transmit */
 
-        /* Wait I2C Tx Finish */
-        while (g_u8EndFlag == 0);
-        g_u8EndFlag = 0;
+	g_u8Index = 0;
+	g_u8DataLen = 2 + exp_data_len; /* The total data to be exchanged is the 2 command bytes (sent) plus the data we expect to receive. */
 
-        /* I2C function to read data from slave */
-        s_I2C0HandlerFn = (I2C_FUNC)I2C_MasterRx;
+	g_bEndFlag = false;
 
-        g_u8DataLen = 0;
-        g_u8DeviceAddr = slvaddr;
+	/* I2C as master sends START signal */
+	I2C_SET_CONTROL_REG(I2C0, I2C_CTL_STA);
 
-        I2C_SET_CONTROL_REG(I2C0, I2C_CTL_STA);
-
-        /* Wait I2C Rx Finish */
-        while (g_u8EndFlag == 0);
-
-        /* Compare data */
-        if (g_u8RxData != g_au8TxData[2])
-        {
-            printf("I2C Byte Write/Read Failed, Data 0x%x\n", g_u8RxData);
-            return -1;
-        }
-    }
-    printf("Master Access Slave (0x%X) Test OK\n", slvaddr);
-    return 0;
 }
 
-int32_t main (void)
-{
-    /* Unlock protected registers */
-    //SYS_UnlockReg();
+/* adr is the 7-bit device address i.e. without the 8th (R/W) bit. */
+/* exp_data_len is the number of bytes the master expects to receive (i.e. the nb of bytes we will ACK). */
+/* This is for when repeated start can't be used. Ex.: with SCD30 */
 
-    /* Init System, IP clock and multi-function I/O */
-    //SYS_Init();
+void I2C_sensorReceive(uint8_t adr, uint8_t exp_data_len){
 
-    /*
-        This sample code sets I2C bus clock to 100kHz. Then, Master accesses Slave with Byte Write
-        and Byte Read operations, and check if the read data is equal to the programmed data.
-    */
+	g_bReceiving = true;
 
-    printf("+-------------------------------------------------------+\n");
-    printf("|       I2C Driver Sample Code(Master) for access Slave |\n");
-    printf("+-------------------------------------------------------+\n");
+	g_u8DeviceAddr = adr;
 
-    /* Init I2C0 */
-    //I2C0_Init();
+	//g_au8TxData[0] = (uint8_t)((cmd & 0xFF00) >> 8); /* Command MSB placed as the first data byte to transmit */
+	//g_au8TxData[1] = (uint8_t)(cmd & 0x00FF); /* Command LSB placed as the second data byte to transmit */
 
-    /* Access Slave with no address mask */
-    printf("\n");
-    printf(" == No Mask Address ==\n");
-    Read_Write_SLAVE(0x15);
-    Read_Write_SLAVE(0x35);
-    Read_Write_SLAVE(0x55);
-    Read_Write_SLAVE(0x75);
-    printf("SLAVE Address test OK.\n");
+	g_u8Index = 2; /* since there's no command, we start at byte 2 in the buffer */
+	g_u8DataLen = 2 + exp_data_len; /* we leave room for a command even if it's not used */
 
-    /* Access Slave with address mask */
-    printf("\n");
-    printf(" == Mask Address ==\n");
-    Read_Write_SLAVE(0x15 & ~0x01);
-    Read_Write_SLAVE(0x35 & ~0x04);
-    Read_Write_SLAVE(0x55 & ~0x01);
-    Read_Write_SLAVE(0x75 & ~0x04);
-    printf("SLAVE Address Mask test OK.\n");
+	g_bEndFlag = false;
 
-    while(1);
+	/* I2C as master sends START signal */
+	I2C_SET_CONTROL_REG(I2C0, I2C_CTL_STA);
 }
 
+/* adr is the 7-bit device address i.e. without the 8th (R/W) bit. */
+/* cmd is a 16 bit command sent before the data */
+/* data is a pointer to the data */
+/* exp_data_len is the number of bytes of DATA to send EXCLUDING the cmd (i.e. if just a cmd is  sent, this will be zero). */
+
+void I2C_sensorSend(uint8_t adr, uint16_t cmd, uint8_t* data, uint8_t data_len){
+
+	g_bReceiving = false;
+
+	g_u8DeviceAddr = adr;
+
+	g_au8Data[0] = (uint8_t)((cmd & 0xFF00) >> 8); /* Command MSB placed as the first data byte to transmit */
+	g_au8Data[1] = (uint8_t)(cmd & 0x00FF); /* Command LSB placed as the second data byte to transmit */
+
+	g_u8Index = 0;
+	g_u8DataLen = 2 + data_len; /* The total data to be exchanged is the 2 command bytes (sent) plus the data we want to send. */
+
+	uint8_t i;
+	for(i = 0; i < data_len; i++){ /* Copy data to driver buffer */
+		g_au8Data[i] = data[i];
+	}
+
+	g_bEndFlag = false;
+
+	I2C_SET_CONTROL_REG(I2C0, I2C_CTL_STA);
+
+}
+
+void I2C_sensorFetchReceviedData(uint8_t* data, uint8_t exp_data_len){
+
+	if(g_bEndFlag){/* If transfer finished */
+		g_bEndFlag = false;
+
+		uint8_t i;
+		for(i = 0; i < exp_data_len; i++){ /* Copy data to driver buffer */
+			data[i] = g_au8Data[i];
+		}
+	}
+
+}

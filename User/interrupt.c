@@ -169,7 +169,7 @@ void USBD_IRQHandler(void)
             }
         }
 
-        if (u32IntSts & USBD_INTSTS_EP2)/* Ceci gère le endpoint HARDWARE #2, ce qui équivaut au BULK_IN_EP_NUM (1)*/
+        if (u32IntSts & USBD_INTSTS_EP2)/* Ceci gï¿½re le endpoint HARDWARE #2, ce qui ï¿½quivaut au BULK_IN_EP_NUM (1)*/
         {
             /* Clear event flag */
             USBD_CLR_INT_FLAG(USBD_INTSTS_EP2);
@@ -187,7 +187,7 @@ void USBD_IRQHandler(void)
 
         }
 
-        if (u32IntSts & USBD_INTSTS_EP3) /* Ceci gère le endpoint HARDWARE #3, ce qui équivaut au BULK_OUT_EP_NUM (2)*/
+        if (u32IntSts & USBD_INTSTS_EP3) /* Ceci gï¿½re le endpoint HARDWARE #3, ce qui ï¿½quivaut au BULK_OUT_EP_NUM (2)*/
         {
             /* Clear event flag */
             USBD_CLR_INT_FLAG(USBD_INTSTS_EP3);
@@ -195,7 +195,7 @@ void USBD_IRQHandler(void)
             EP3_Handler();
         }
 
-        if (u32IntSts & USBD_INTSTS_EP4) /*Ceci gère le endpoint HARDWARE #4, ce qui équivaut au INT_IN_EP_NUM (3) (Inactif)*/
+        if (u32IntSts & USBD_INTSTS_EP4) /*Ceci gï¿½re le endpoint HARDWARE #4, ce qui ï¿½quivaut au INT_IN_EP_NUM (3) (Inactif)*/
         {
             /* Clear event flag */
             USBD_CLR_INT_FLAG(USBD_INTSTS_EP4);
@@ -275,19 +275,135 @@ void EADC01_IRQHandler(void){ /* Interrupt for temperature sensor channel */
 /*---------------------------------------------------------------------------------------------------------*/
 void I2C0_IRQHandler(void)
 {
-    uint32_t u32Status;
+	extern volatile uint8_t g_u8DeviceAddr;
+
+	extern volatile uint8_t g_au8Data[I2C_DATA_BUFF_LEN];/* The first two bytes are always byte to be sent (a 16 bit command) */
+	/* Actual data starts at g_au8Data[2] */
+
+	extern volatile uint8_t g_u8DataLen;
+	extern volatile uint8_t g_u8Index;
+	extern volatile bool g_bEndFlag;
+	extern volatile bool g_bReceiving;
+
+	uint32_t u32Status;
 
     u32Status = I2C_GET_STATUS(I2C0);
 
-    if (I2C_GET_TIMEOUT_FLAG(I2C0))
-    {
+    if (I2C_GET_TIMEOUT_FLAG(I2C0)){
+
         /* Clear I2C0 Timeout Flag */
         I2C_ClearTimeoutFlag(I2C0);
-    }
-    else
-    {
-    	extern static volatile I2C_FUNC s_I2C0HandlerFn; /* Defined in I2C_sensors.h/.c */
-    	if (s_I2C0HandlerFn != NULL)
-            s_I2C0HandlerFn(u32Status);
+
+    }else{
+
+    	if (u32Status == 0x08){                      /* START has been transmitted */
+
+			if(g_u8Index){ /* If the start condition was sent with index not at zero */
+				/* We're doing a plain read without a command sent first. The next thing we have to do is a read. Prepare SLA+R (slave read) */
+				/* This is when repeated start is not used. */
+				I2C_SET_DATA(I2C0, (g_u8DeviceAddr << 1) | 0x01);  /* Write SLA+R (Slave with read mask) to Register I2CDAT */
+				I2C_SET_CONTROL_REG(I2C0, I2C_CTL_SI);
+
+			}else{ /* Else the start condition was sent with the index at zero */
+				/* The next thing we have to do is a write. Prepare SLA+W (slave write) */
+				I2C_SET_DATA(I2C0, (g_u8DeviceAddr << 1)); /* Write SLA+W to Register I2CDAT */
+				I2C_SET_CONTROL_REG(I2C0, I2C_CTL_SI);
+			}
+
+		}
+
+    	else if (u32Status == 0x10){                 /* Repeat START has been transmitted and prepare SLA+R */
+    		/* Repeated start only comes after a write */
+
+    		I2C_SET_DATA(I2C0, (g_u8DeviceAddr << 1) | 0x01);  /* Write SLA+R (Slave with read mask) to Register I2CDAT */
+			I2C_SET_CONTROL_REG(I2C0, I2C_CTL_SI);
+
+		}
+
+		else if (u32Status == 0x18){                 /* SLA+W has been transmitted and ACK has been received */
+
+			/* Begin data transmission */
+			I2C_SET_DATA(I2C0, g_au8Data[g_u8Index++]); /* Send the next byte of data */
+			I2C_SET_CONTROL_REG(I2C0, I2C_CTL_SI); /* Clear I. F. */
+		}
+
+		else if (u32Status == 0x20){                 /* SLA+W has been transmitted and NACK has been received */
+
+			I2C_SET_CONTROL_REG(I2C0, I2C_CTL_STA | I2C_CTL_STO | I2C_CTL_SI); /* clear the interrupt flag, send START and STOP to reset bus. */
+		}
+
+		else if (u32Status == 0x28){                 /* DATA has been transmitted and ACK has been received */
+
+			if(g_bReceiving){/* if in receiving mode */
+
+				if (g_u8Index <= 2){ /* As long as we're not finished sending the first 2 command bytes */
+
+						I2C_SET_DATA(I2C0, g_au8Data[g_u8Index++]); /* Send the next byte of data */
+						I2C_SET_CONTROL_REG(I2C0, I2C_CTL_SI);
+
+				}else{/* else we've sent the first 2 command bytes and we'll switch to actually receiving... */
+
+					I2C_SET_CONTROL_REG(I2C0, I2C_CTL_STA | I2C_CTL_SI);/* ...by sending a repeated start (and clearing the int. flag). */
+					/* Next status should be 0x10, repeated start */
+				}
+
+			}else{ /* Else we're in sending mode */
+
+
+				if(g_u8Index <= g_u8DataLen){ /* As long as the end of the buffer is not reached */
+
+						I2C_SET_DATA(I2C0, g_au8Data[g_u8Index++]); /* Send the next byte of data */
+						I2C_SET_CONTROL_REG(I2C0, I2C_CTL_SI); /* Clear I.F. */
+
+				}else{/* else we've sent the whole buffer */
+					I2C_SET_CONTROL_REG(I2C0, I2C_CTL_STO | I2C_CTL_SI); /* Send STOP and clear interrupt flag. */
+					g_bEndFlag = true; /* Flag the operation as finished */
+				}
+
+			}
+
+		}
+
+		else if (u32Status == 0x30){                 /* DATA has been transmitted and NACK has been received */
+
+			I2C_SET_CONTROL_REG(I2C0, I2C_CTL_STA | I2C_CTL_STO | I2C_CTL_SI); /* clear the interrupt flag, send START and STOP to reset bus. */
+		}
+
+		else if (u32Status == 0x40){                 /* SLA+R has been transmitted and ACK has been received */
+
+			if(g_u8Index + 1 < g_u8DataLen){ /* If the byte we'll receive wont'be the last */
+				I2C_SET_CONTROL_REG(I2C0, I2C_CTL_SI|I2C_CTL_AA); /* Clear interrupt flag and ACK next byte */
+			}else{/* else */
+				I2C_SET_CONTROL_REG(I2C0, I2C_CTL_SI); /*  Else, just clear interrupt flag, the byte we'll receive will be NACked cause it's the last */
+			}
+
+		}
+		else if (u32Status == 0x50){                 /* DATA has been received and ACK has been returned */
+
+			g_au8Data[g_u8Index++] = I2C_GET_DATA(I2C0); /* Store the received data in the buffer */
+
+			if(g_u8Index + 1 < g_u8DataLen){ /* If the next byte we'll receive wont'be the last */
+				I2C_SET_CONTROL_REG(I2C0, I2C_CTL_SI|I2C_CTL_AA); /* Clear interrupt flag and ACK next byte */
+			}else{/* Else */
+				I2C_SET_CONTROL_REG(I2C0, I2C_CTL_SI); /* just clear the interrupt flag the byte we'll receive will be NACked since it's the last */
+			}
+
+			//g_u8RxData = I2C_GET_DATA(I2C0);
+			//I2C_SET_CONTROL_REG(I2C0, I2C_CTL_STO | I2C_CTL_SI);
+			//g_bEndFlag = true; /* Set the flag indicating we're finished */
+		}
+
+		else if (u32Status == 0x58){                 /* DATA has been received and NACK has been returned */
+
+			g_au8Data[g_u8Index++] = I2C_GET_DATA(I2C0);
+			I2C_SET_CONTROL_REG(I2C0, I2C_CTL_STO | I2C_CTL_SI);/* Send a STOP and clear interrupt flag */
+			g_bEndFlag = true; /* Set the flag indicating we're finished */
+		}
+
+		else{
+
+			/* TO DO */
+			printf("ERROR: I2C status 0x%x received and NOT processed.\n", u32Status);
+		}
     }
 }
