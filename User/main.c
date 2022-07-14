@@ -11,9 +11,10 @@
 #include "NuMicro.h"
 #include "interrupt.h"
 #include "vcom_serial.h"
-#include "sys.h"
 #include "UI.h"
 #include "analog.h"
+#include "I2C_sensors.h"
+#include "user_sys.h"
 
 
 
@@ -134,7 +135,7 @@ int main (void)
 
     SYS_Init();
 
-    UART_Open(UART0, DEBUG_UART_SPEED); // Debug port. printf() is piped to this.
+    UART_Open(UART0, DEBUG_UART_SPEED); // Debug port. printf() is piped to this. See retarget.c file
     printf("CAN Acquisition Module - Debug port\n");
 
     ADC_Init();
@@ -142,15 +143,14 @@ int main (void)
     /* Initialize virtual COM port (over USB) */
     VCOM_Init();
 
-    //NVIC_EnableIRQ(UART0_IRQn);
-
-    NVIC_EnableIRQ(USBD_IRQn);
-
     /* Init I2C0 */
     I2C0_Init();
 
 
-    uint8_t u8LEDState = 0;
+    interrupt_setPriorities();
+
+
+    I2C_sensorAutodetectAndConfigure();
 
     while(1)
     {
@@ -160,14 +160,14 @@ int main (void)
         int8_t i8RowSel, i8ColumnSel;
         UI_read_user_input(&i8RowSel,&i8ColumnSel);
 
+        I2C_sensorCheckIfNewDataAndConvert();
+
 
         if(gbDrawNewUIFrame){// Every UI_FRAME_INTERVAL_MS milliseconds
         	gbDrawNewUIFrame = false;
 
         	if(gbTerminalActive){
         		UI_draw(i8RowSel, i8ColumnSel);
-
-
 
         	}
 
@@ -177,16 +177,29 @@ int main (void)
         	gbSecondsFlag = false;// Clear the flag
         	// Do things that need to be done every second
 
-        	ADC_StartAcquisition(); /* Run an acquisition every second */
+        	//ADC_StartAcquisition(); /* Run an acquisition every second */
+
+        	cycleLED();
 
 
-        	PB->DOUT &= ~(BIT13|BIT14|BIT15);
-        	PB->DOUT |= (u8LEDState << 13);
-        	printf("LED State is %i\n", u8LEDState);
-        	u8LEDState++;
-        	if(u8LEDState > 0b111){
-        		u8LEDState =0;
+
+        	switch(env_sensor.sensorType){
+
+			case I2C_SENSOR_SHT3x:
+				I2C_sensorReceiveWithCommand(SHT3x_ADR, SHT3x_CMD_ONE_SHOT_ACQ, SHT3x_ACQ_LEN);
+				break;
+
+			case I2C_SENSOR_SCD30:
+				I2C_sensorReceive(SCD30_ADR, SCD30_FULL_READOUT_LEN_BYTES);/* Get all the data */
+				I2C_sensorSend(SCD30_ADR, SCD30_CMD_READ_MEAS, NULL, 0); /* Prepare a new readout for the next time this fct is run */
+				break;
+
+			case I2C_SENSOR_NONE:
+				break;
+
         	}
+
+
         }
 
         if(gbSampleAnalog){

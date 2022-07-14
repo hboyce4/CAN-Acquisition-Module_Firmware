@@ -27,6 +27,15 @@ volatile bool gbDrawNewUIFrame = false;
 volatile bool gbSampleAnalog = false;
 
 
+void interrupt_setPriorities(void){
+
+	NVIC_SetPriority(EADC00_IRQn, ANALOG_PRIORITY);
+	NVIC_SetPriority(USBD_IRQn, USBD_PRIORITY);
+	NVIC_SetPriority(SysTick_IRQn, SYSTICK_PRIORITY);
+	NVIC_SetPriority(I2C0_IRQn, I2C_PRIORITY);
+
+}
+
 /* Most important interrupt */
 void SysTick_Handler(void)	// Every millisecond (Medium frequency).
 {
@@ -277,13 +286,15 @@ void I2C0_IRQHandler(void)
 {
 	extern volatile uint8_t g_u8DeviceAddr;
 
-	extern volatile uint8_t g_au8Data[I2C_DATA_BUFF_LEN];/* The first two bytes are always byte to be sent (a 16 bit command) */
+	extern volatile uint8_t g_au8Buff[I2C_DATA_BUFF_LEN];
+	//extern volatile uint8_t g_au8Data[I2C_DATA_BUFF_LEN];/* The first two bytes are always byte to be sent (a 16 bit command) */
 	/* Actual data starts at g_au8Data[2] */
 
 	extern volatile uint8_t g_u8DataLen;
 	extern volatile uint8_t g_u8Index;
 	extern volatile bool g_bEndFlag;
 	extern volatile bool g_bReceiving;
+	extern volatile bool g_bACKFlag;
 
 	uint32_t u32Status;
 
@@ -322,23 +333,31 @@ void I2C0_IRQHandler(void)
 
 		else if (u32Status == 0x18){                 /* SLA+W has been transmitted and ACK has been received */
 
-			/* Begin data transmission */
-			I2C_SET_DATA(I2C0, g_au8Data[g_u8Index++]); /* Send the next byte of data */
-			I2C_SET_CONTROL_REG(I2C0, I2C_CTL_SI); /* Clear I. F. */
+			if(g_u8DataLen){/* If data length is non-zero */
+
+				/* Begin data transmission */
+				I2C_SET_DATA(I2C0, g_au8Buff[g_u8Index++]); /* Send the next byte of data */
+				I2C_SET_CONTROL_REG(I2C0, I2C_CTL_SI); /* Clear I. F. */
+			}else{/* Else, data length is zero, i.e. not even a command, we're probably autodetecting. */
+				I2C_SET_CONTROL_REG(I2C0, I2C_CTL_STO | I2C_CTL_SI); /* Clear I. F. and send STOP */
+				g_bACKFlag = true;
+			}
+
+
 		}
 
 		else if (u32Status == 0x20){                 /* SLA+W has been transmitted and NACK has been received */
 
-			I2C_SET_CONTROL_REG(I2C0, I2C_CTL_STA | I2C_CTL_STO | I2C_CTL_SI); /* clear the interrupt flag, send START and STOP to reset bus. */
+			I2C_SET_CONTROL_REG(I2C0, /*I2C_CTL_STA |*/ I2C_CTL_STO | I2C_CTL_SI); /* clear the interrupt flag, send START and STOP to reset bus. */
 		}
 
 		else if (u32Status == 0x28){                 /* DATA has been transmitted and ACK has been received */
 
 			if(g_bReceiving){/* if in receiving mode */
 
-				if (g_u8Index <= 2){ /* As long as we're not finished sending the first 2 command bytes */
+				if (g_u8Index < 2){ /* As long as we're not finished sending the first 2 command bytes */
 
-						I2C_SET_DATA(I2C0, g_au8Data[g_u8Index++]); /* Send the next byte of data */
+						I2C_SET_DATA(I2C0, g_au8Buff[g_u8Index++]); /* Send the next byte of data */
 						I2C_SET_CONTROL_REG(I2C0, I2C_CTL_SI);
 
 				}else{/* else we've sent the first 2 command bytes and we'll switch to actually receiving... */
@@ -352,7 +371,7 @@ void I2C0_IRQHandler(void)
 
 				if(g_u8Index <= g_u8DataLen){ /* As long as the end of the buffer is not reached */
 
-						I2C_SET_DATA(I2C0, g_au8Data[g_u8Index++]); /* Send the next byte of data */
+						I2C_SET_DATA(I2C0, g_au8Buff[g_u8Index++]); /* Send the next byte of data */
 						I2C_SET_CONTROL_REG(I2C0, I2C_CTL_SI); /* Clear I.F. */
 
 				}else{/* else we've sent the whole buffer */
@@ -366,7 +385,7 @@ void I2C0_IRQHandler(void)
 
 		else if (u32Status == 0x30){                 /* DATA has been transmitted and NACK has been received */
 
-			I2C_SET_CONTROL_REG(I2C0, I2C_CTL_STA | I2C_CTL_STO | I2C_CTL_SI); /* clear the interrupt flag, send START and STOP to reset bus. */
+			I2C_SET_CONTROL_REG(I2C0, /*I2C_CTL_STA |*/ I2C_CTL_STO | I2C_CTL_SI); /* clear the interrupt flag, send START and STOP to reset bus. */
 		}
 
 		else if (u32Status == 0x40){                 /* SLA+R has been transmitted and ACK has been received */
@@ -380,7 +399,7 @@ void I2C0_IRQHandler(void)
 		}
 		else if (u32Status == 0x50){                 /* DATA has been received and ACK has been returned */
 
-			g_au8Data[g_u8Index++] = I2C_GET_DATA(I2C0); /* Store the received data in the buffer */
+			g_au8Buff[g_u8Index++] = I2C_GET_DATA(I2C0); /* Store the received data in the buffer */
 
 			if(g_u8Index + 1 < g_u8DataLen){ /* If the next byte we'll receive wont'be the last */
 				I2C_SET_CONTROL_REG(I2C0, I2C_CTL_SI|I2C_CTL_AA); /* Clear interrupt flag and ACK next byte */
@@ -395,15 +414,23 @@ void I2C0_IRQHandler(void)
 
 		else if (u32Status == 0x58){                 /* DATA has been received and NACK has been returned */
 
-			g_au8Data[g_u8Index++] = I2C_GET_DATA(I2C0);
+			g_au8Buff[g_u8Index++] = I2C_GET_DATA(I2C0);
 			I2C_SET_CONTROL_REG(I2C0, I2C_CTL_STO | I2C_CTL_SI);/* Send a STOP and clear interrupt flag */
+
+			//uint8_t i;
+			//for(i = 0; i < I2C_DATA_BUFF_LEN; i++){ /* Copy data from buffer */
+			//	g_au8Data[i] = g_au8Buff[i];
+			//}
+
 			g_bEndFlag = true; /* Set the flag indicating we're finished */
 		}
 
 		else{
 
 			/* TO DO */
+
 			printf("ERROR: I2C status 0x%x received and NOT processed.\n", u32Status);
+			I2C_SET_CONTROL_REG(I2C0, I2C_CTL_SI); /* Clear the interrupt flag */
 		}
     }
 }

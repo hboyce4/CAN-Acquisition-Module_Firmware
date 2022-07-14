@@ -127,6 +127,9 @@ void VCOM_Init(void)
     USBD_Start();
 
     USBD_ENABLE_INT(USBD_INTEN_INNAKEN_Msk);/* Enable Interrupts on NAK*/
+
+    NVIC_EnableIRQ(USBD_IRQn);
+
 }
 
 

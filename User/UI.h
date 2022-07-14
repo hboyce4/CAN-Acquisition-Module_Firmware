@@ -26,6 +26,8 @@
 
 #define CURSOR_RIGHT_COLUMN "\x1B[32G"//Advance cursor to column 30 to draw right column
 
+#define ANALOG_HEADER ("			ANALOG\n\r")
+#define ENVIRONMENTAL_SENSOR_HEADER ("\n\r		ENVIRONMENTAL SENSOR\n\r")
 
 /*---------------------------------------------------------------------------------------------------------*/
 /* Type definitions           				                                                               */

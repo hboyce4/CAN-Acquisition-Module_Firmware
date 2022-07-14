@@ -16,6 +16,7 @@
 #include <stdbool.h>
 #include <math.h>
 #include "NuMicro.h"
+#include "user_sys.h"
 
 /*---------------------------------------------------------------------------------------------------------*/
 /* Macros           				                                                                      */
@@ -43,8 +44,8 @@
 /*---------------------------------------------------------------------------------------------------------*/
 /* Type definitions           				                                                               */
 /*---------------------------------------------------------------------------------------------------------*/
-typedef enum {UNIT_OHM, UNIT_CELSIUS, UNIT_KELVIN, UNIT_VOLT, UNIT_MILLIVOLT} physical_unit_t;
-typedef enum {SENSOR_NONE, SENSOR_NTC, SENSOR_PYRANOMETER, SENSOR_THERMOCOUPLE} sensor_t;
+
+typedef enum {SENSOR_NONE, SENSOR_NTC, SENSOR_PYRANOMETER, SENSOR_THERMOCOUPLE} analog_sensor_t;
 
 typedef struct analog_channel{ /* Process values or state variables */
 
@@ -55,7 +56,7 @@ typedef struct analog_channel{ /* Process values or state variables */
 
 	physical_unit_t fieldUnit;/* The field unit is what the sensor outputs and the acquisition module measures. Ex. Ohms or volts. */
 	physical_unit_t processUnit; /* The process unit is what the sensor measures, the unit of the process. It is what we are interested in ultimately. Ex. celsius, watt/m^2. etc. */
-	sensor_t sensorType;
+	analog_sensor_t sensorType;
 
 	/* For NTC only */
 	float biasResistor; /* [Ohms] Value of the biasing resistor of the sensor */

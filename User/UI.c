@@ -12,7 +12,8 @@
 #include "vcom_serial.h"
 #include "interrupt.h"
 #include "analog.h"
-#include "sys.h"
+#include "user_sys.h"
+#include "I2C_sensors.h"
 
 /*---------------------------------------------------------------------------------------------------------*/
 /* Global variables                                                                                        */
@@ -283,16 +284,24 @@ void UI_draw_info_page_sys(void){
 
 	VCOM_PushString((char*) line_str);
 
+	char I2C_sensor_str[SHORT_STRING_LENGTH];
+	UI_get_I2C_sensor_string(env_sensor.sensorType, I2C_sensor_str);
+	sprintf(line_str, "I2C sensor: %s\n\r", I2C_sensor_str);
+	VCOM_PushString((char*) line_str);
+
 }
 
 void UI_draw_info_page_PV(void){ /* Process values */
 
 
-	/***************************************** First Line ********************************************/
+
 	char line_str[LINE_WIDTH];
 	char left_unit_str[SHORT_STRING_LENGTH];
 	char right_unit_str[SHORT_STRING_LENGTH];
 
+	VCOM_PushString("			ANALOG\n\r");
+
+	/***************************************** First Line ********************************************/
 	UI_get_unit_string(analog_channels[0].processUnit, left_unit_str);
 	UI_get_unit_string(analog_channels[1].processUnit, right_unit_str);
 	sprintf(line_str, "CH0: %f %s%sCH1: %f %s\n\r", analog_channels[0].processValue, left_unit_str, CURSOR_RIGHT_COLUMN, analog_channels[1].processValue, right_unit_str);
@@ -334,15 +343,35 @@ void UI_draw_info_page_PV(void){ /* Process values */
 
 	VCOM_PushString((char*) line_str);
 
+	VCOM_PushString(ENVIRONMENTAL_SENSOR_HEADER);
+
+	/***************************************** seventh Line ********************************************/
+	UI_get_unit_string(env_sensor.temperature_processUnit, left_unit_str);
+	UI_get_unit_string(env_sensor.humidity_processUnit, right_unit_str);
+	sprintf(line_str, "Temperature: %f %s%sHumidity: %f%s\n\r", env_sensor.temperature_processValue, left_unit_str, CURSOR_RIGHT_COLUMN, env_sensor.humidity_processValue, right_unit_str);
+
+	VCOM_PushString((char*) line_str);
+
+	/***************************************** Eight Line ********************************************/
+	UI_get_unit_string(env_sensor.CO2_processUnit, left_unit_str);
+	//UI_get_unit_string(analog_channels[11].processUnit, right_unit_str);
+	sprintf(line_str, "CO2: %f %s\n\r", env_sensor.CO2_processValue, left_unit_str);
+
+	VCOM_PushString((char*) line_str);
+
+
 }
 
 void UI_draw_info_page_FV(void){ /* Field values */
 
-	/***************************************** First Line ********************************************/
+
 	char line_str[LINE_WIDTH];
 	char left_unit_str[SHORT_STRING_LENGTH];
 	char right_unit_str[SHORT_STRING_LENGTH];
 
+	VCOM_PushString(ANALOG_HEADER);
+
+	/***************************************** First Line ********************************************/
 	UI_get_unit_string(analog_channels[0].fieldUnit, left_unit_str);
 	UI_get_unit_string(analog_channels[1].fieldUnit, right_unit_str);
 	sprintf(line_str, "CH0: %f %s%sCH1: %f %s\n\r", analog_channels[0].fieldValue, left_unit_str, CURSOR_RIGHT_COLUMN, analog_channels[1].fieldValue, right_unit_str);
@@ -384,15 +413,34 @@ void UI_draw_info_page_FV(void){ /* Field values */
 
 	VCOM_PushString((char*) line_str);
 
+	VCOM_PushString(ENVIRONMENTAL_SENSOR_HEADER);
+
+	/***************************************** seventh Line ********************************************/
+	UI_get_unit_string(env_sensor.temperature_fieldUnit, left_unit_str);
+	UI_get_unit_string(env_sensor.humidity_fieldUnit, right_unit_str);
+	sprintf(line_str, "Temperature: %u %s%sHumidity: %u %s\n\r", env_sensor.temperature_fieldValue, left_unit_str, CURSOR_RIGHT_COLUMN, env_sensor.humidity_fieldValue, right_unit_str);
+
+	VCOM_PushString((char*) line_str);
+
+	/***************************************** Eight Line ********************************************/
+	UI_get_unit_string(env_sensor.CO2_fieldUnit, left_unit_str);
+	//UI_get_unit_string(analog_channels[11].processUnit, right_unit_str);
+	sprintf(line_str, "CO2: %u %s\n\r", env_sensor.CO2_fieldValue, left_unit_str);
+
+	VCOM_PushString((char*) line_str);
+
 }
 
 void UI_draw_info_page_noise(void){ /* Field values */
 
-	/***************************************** First Line ********************************************/
+
 	char line_str[LINE_WIDTH];
 	char left_unit_str[SHORT_STRING_LENGTH];
 	char right_unit_str[SHORT_STRING_LENGTH];
 
+	VCOM_PushString(ANALOG_HEADER);
+
+	/***************************************** First Line ********************************************/
 	UI_get_unit_string(analog_channels[0].fieldUnit, left_unit_str);
 	UI_get_unit_string(analog_channels[1].fieldUnit, right_unit_str);
 	sprintf(line_str, "CH0: %f %s%sCH1: %f %s\n\r", analog_channels[0].RMSNoise, left_unit_str, CURSOR_RIGHT_COLUMN, analog_channels[1].RMSNoise, right_unit_str);
@@ -612,11 +660,47 @@ void UI_get_unit_string(physical_unit_t unit_type, char* string){/* Max. 8 chara
 			strcpy(string, "mV");
 			break;
 
+		case UNIT_CNT:
+			strcpy(string, "cnt.");
+			break;
+
+		case UNIT_PERCENT_RH:
+			strcpy(string, "% RH");
+			break;
+
+		case UNIT_PPM:
+			strcpy(string, "ppm");
+			break;
+
 		default: /*If the unit is not known */
 			strcpy(string, "");
 			break;
 
 	}
+}
+
+void UI_get_I2C_sensor_string(I2C_sensor_t type, char* string){
+
+	switch(type){
+
+		case I2C_SENSOR_NONE:
+			strcpy(string, "None");
+			break;
+
+		case I2C_SENSOR_SHT3x:
+			strcpy(string, "SHT3x");
+			break;
+
+		case I2C_SENSOR_SCD30:
+			strcpy(string, "SCD30");
+			break;
+
+		default: /*If the unit is not known */
+			strcpy(string, "Unknown");
+			break;
+
+	}
+
 }
 
 

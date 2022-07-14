@@ -29,17 +29,6 @@ endif
 
 -include ../makefile.defs
 
-OPTIONAL_TOOL_DEPS := \
-$(wildcard ../makefile.defs) \
-$(wildcard ../makefile.init) \
-$(wildcard ../makefile.targets) \
-
-
-BUILD_ARTIFACT_NAME := CAN-Acquisition-Module
-BUILD_ARTIFACT_EXTENSION := elf
-BUILD_ARTIFACT_PREFIX :=
-BUILD_ARTIFACT := $(BUILD_ARTIFACT_PREFIX)$(BUILD_ARTIFACT_NAME)$(if $(BUILD_ARTIFACT_EXTENSION),.$(BUILD_ARTIFACT_EXTENSION),)
-
 # Add inputs and outputs from these tool invocations to the build variables 
 SECONDARY_FLASH += \
 CAN-Acquisition-Module.hex \
@@ -52,20 +41,20 @@ CAN-Acquisition-Module.siz \
 all: CAN-Acquisition-Module.elf secondary-outputs
 
 # Tool invocations
-CAN-Acquisition-Module.elf: $(OBJS) $(USER_OBJS) makefile objects.mk $(OPTIONAL_TOOL_DEPS)
+CAN-Acquisition-Module.elf: $(OBJS) $(USER_OBJS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: Cross ARM GNU C Linker'
 	arm-none-eabi-gcc -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 -Og -fmessage-length=0 -fsigned-char -ffunction-sections -fdata-sections -Wall -Wextra  -g -T gcc_arm.ld -Xlinker --gc-sections -L"../CMSIS/GCC" -Wl,-Map,"CAN-Acquisition-Module.map" --specs=nano.specs -u _printf_float -u _scanf_float -o "CAN-Acquisition-Module.elf" $(OBJS) $(USER_OBJS) $(LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 
-CAN-Acquisition-Module.hex: CAN-Acquisition-Module.elf makefile objects.mk $(OPTIONAL_TOOL_DEPS)
+CAN-Acquisition-Module.hex: CAN-Acquisition-Module.elf
 	@echo 'Invoking: Cross ARM GNU Create Flash Image'
 	arm-none-eabi-objcopy -O ihex "CAN-Acquisition-Module.elf"  "CAN-Acquisition-Module.hex"
 	@echo 'Finished building: $@'
 	@echo ' '
 
-CAN-Acquisition-Module.siz: CAN-Acquisition-Module.elf makefile objects.mk $(OPTIONAL_TOOL_DEPS)
+CAN-Acquisition-Module.siz: CAN-Acquisition-Module.elf
 	@echo 'Invoking: Cross ARM GNU Print Size'
 	arm-none-eabi-size --format=berkeley "CAN-Acquisition-Module.elf"
 	@echo 'Finished building: $@'
@@ -79,5 +68,6 @@ clean:
 secondary-outputs: $(SECONDARY_FLASH) $(SECONDARY_SIZE)
 
 .PHONY: all clean dependents
+.SECONDARY:
 
 -include ../makefile.targets
