@@ -150,7 +150,8 @@ int main (void)
     interrupt_setPriorities();
 
 
-    I2C_sensorAutodetectAndConfigure();
+    I2C_sensorAutodetect();
+    I2C_sensorConfigure();
 
     while(1)
     {
@@ -181,23 +182,7 @@ int main (void)
 
         	cycleLED();
 
-
-
-        	switch(env_sensor.sensorType){
-
-			case I2C_SENSOR_SHT3x:
-				I2C_sensorReceiveWithCommand(SHT3x_ADR, SHT3x_CMD_ONE_SHOT_ACQ, SHT3x_ACQ_LEN);
-				break;
-
-			case I2C_SENSOR_SCD30:
-				I2C_sensorReceive(SCD30_ADR, SCD30_FULL_READOUT_LEN_BYTES);/* Get all the data */
-				I2C_sensorSend(SCD30_ADR, SCD30_CMD_READ_MEAS, NULL, 0); /* Prepare a new readout for the next time this fct is run */
-				break;
-
-			case I2C_SENSOR_NONE:
-				break;
-
-        	}
+        	I2C_sensorOncePerSecondRoutine();/* This easily takes 10 ms*/
 
 
         }

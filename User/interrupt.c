@@ -369,7 +369,7 @@ void I2C0_IRQHandler(void)
 			}else{ /* Else we're in sending mode */
 
 
-				if(g_u8Index <= g_u8DataLen){ /* As long as the end of the buffer is not reached */
+				if(g_u8Index < g_u8DataLen){ /* As long as the end of the buffer is not reached */
 
 						I2C_SET_DATA(I2C0, g_au8Buff[g_u8Index++]); /* Send the next byte of data */
 						I2C_SET_CONTROL_REG(I2C0, I2C_CTL_SI); /* Clear I.F. */
@@ -417,19 +417,12 @@ void I2C0_IRQHandler(void)
 			g_au8Buff[g_u8Index++] = I2C_GET_DATA(I2C0);
 			I2C_SET_CONTROL_REG(I2C0, I2C_CTL_STO | I2C_CTL_SI);/* Send a STOP and clear interrupt flag */
 
-			//uint8_t i;
-			//for(i = 0; i < I2C_DATA_BUFF_LEN; i++){ /* Copy data from buffer */
-			//	g_au8Data[i] = g_au8Buff[i];
-			//}
-
 			g_bEndFlag = true; /* Set the flag indicating we're finished */
 		}
 
 		else{
 
-			/* TO DO */
-
-			printf("ERROR: I2C status 0x%x received and NOT processed.\n", u32Status);
+			printf("ERROR: I2C status 0x%x received and NOT processed.\n", u32Status);/* Print error to debug port */
 			I2C_SET_CONTROL_REG(I2C0, I2C_CTL_SI); /* Clear the interrupt flag */
 		}
     }
