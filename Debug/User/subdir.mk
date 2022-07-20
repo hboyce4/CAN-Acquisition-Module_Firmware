@@ -6,10 +6,13 @@
 C_SRCS += \
 ../User/CAN_message.c \
 ../User/I2C_sensors.c \
+../User/SPI_LCD.c \
 ../User/UI.c \
 ../User/analog.c \
 ../User/analog_channels.c \
 ../User/descriptors.c \
+../User/fonts.c \
+../User/initialization.c \
 ../User/interrupt.c \
 ../User/main.c \
 ../User/user_sys.c \
@@ -18,10 +21,13 @@ C_SRCS += \
 OBJS += \
 ./User/CAN_message.o \
 ./User/I2C_sensors.o \
+./User/SPI_LCD.o \
 ./User/UI.o \
 ./User/analog.o \
 ./User/analog_channels.o \
 ./User/descriptors.o \
+./User/fonts.o \
+./User/initialization.o \
 ./User/interrupt.o \
 ./User/main.o \
 ./User/user_sys.o \
@@ -30,10 +36,13 @@ OBJS += \
 C_DEPS += \
 ./User/CAN_message.d \
 ./User/I2C_sensors.d \
+./User/SPI_LCD.d \
 ./User/UI.d \
 ./User/analog.d \
 ./User/analog_channels.d \
 ./User/descriptors.d \
+./User/fonts.d \
+./User/initialization.d \
 ./User/interrupt.d \
 ./User/main.d \
 ./User/user_sys.d \
