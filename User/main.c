@@ -15,6 +15,8 @@
 #include "analog.h"
 #include "I2C_sensors.h"
 #include "user_sys.h"
+#include "CAN_message.h"
+
 
 
 
@@ -76,6 +78,12 @@ void SYS_Init(void)
     CLK_EnableModuleClock(I2C0_MODULE);
     /***************************** I2C0 End *************************************/
 
+    /***************************** CAN0 *****************************************/
+    // Enable IP clock
+    CLK->APBCLK0 |= CLK_APBCLK0_CAN0CKEN_Msk;
+    //CLK_EnableModuleClock(CAN0); // Probably works too
+    /***************************** CAN0 end *************************************/
+
     /***************************** SysTick ***************************************/
     /* Update System Core Clock */
     SystemCoreClockUpdate();
@@ -127,6 +135,15 @@ void SYS_Init(void)
 	GPIO_SetPullCtl(PC, BIT1|BIT0, GPIO_PUSEL_PULL_UP);
 	/***************************** I2C0 End *************************************/
 
+	/***************************** CAN0 *****************************************/
+	/* Set PA multi-function pins for CAN0 RXD(PA.4) and TXD(PA.5) */
+	SYS->GPA_MFPL = (SYS->GPA_MFPL & ~(SYS_GPA_MFPL_PA4MFP_Msk | SYS_GPA_MFPL_PA5MFP_Msk)) |
+	                  (SYS_GPA_MFPL_PA4MFP_CAN0_RXD | SYS_GPA_MFPL_PA5MFP_CAN0_TXD);
+
+	// if CAN transceiver is SN65HVD235, set the loopback pin as low:
+	GPIO_SetMode(PA, BIT2, GPIO_MODE_OUTPUT);
+	PA2 = false;
+	/***************************** CAN0 end *************************************/
 }
 
 
@@ -146,6 +163,8 @@ int main (void)
     /* Init I2C0 */
     I2C0_Init();
 
+    CAN_Init();
+
 
     interrupt_setPriorities();
 
@@ -162,6 +181,10 @@ int main (void)
         UI_read_user_input(&i8RowSel,&i8ColumnSel);
 
         I2C_sensorCheckIfNewDataAndConvert();
+
+        CAN_Service();
+
+
 
 
         if(gbDrawNewUIFrame){// Every UI_FRAME_INTERVAL_MS milliseconds
@@ -183,7 +206,6 @@ int main (void)
         	cycleLED();
 
         	I2C_sensorOncePerSecondRoutine();/* This easily takes 10 ms*/
-
 
         }
 

@@ -18,5 +18,7 @@ typedef enum {UNIT_NONE, UNIT_OHM, UNIT_CELSIUS, UNIT_KELVIN, UNIT_VOLT, UNIT_MI
 
 
 void delay_ms(uint32_t);
+void cycleLED(void);
+
 
 #endif /* USER_SYS_H_ */

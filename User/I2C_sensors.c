@@ -379,17 +379,17 @@ void I2C_sensorCheckIfNewDataAndConvert(void){
 
 					if(env_sensor.temperature_processUnit == UNIT_CELSIUS){
 						/* SCD30 returns a float directly */
-						memcpy(&env_sensor.temperature_processValue, &temperature, 4);
+						memcpy(&env_sensor.temperature_processValue, &temperature, sizeof(temperature));
 					}
 
 					if(env_sensor.humidity_processUnit == UNIT_PERCENT_RH){
 						/* SCD30 returns a float directly */
-						memcpy(&env_sensor.humidity_processValue, &humidity, 4);
+						memcpy(&env_sensor.humidity_processValue, &humidity, sizeof(humidity));
 					}
 
 					if(env_sensor.CO2_processUnit == UNIT_PPM){
 						/* SCD30 returns a float directly */
-						memcpy(&env_sensor.CO2_processValue, &CO2, 4);
+						memcpy(&env_sensor.CO2_processValue, &CO2, sizeof(CO2));
 					}
 
 				}

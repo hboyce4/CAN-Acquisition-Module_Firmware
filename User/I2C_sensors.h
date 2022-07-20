@@ -47,7 +47,7 @@ typedef struct digital_sensor_channel{ /* Process values or state variables */
 	physical_unit_t humidity_fieldUnit;/* The field unit is what the sensor outputs and the acquisition module measures. Ex. Ohms or volts. */
 	physical_unit_t humidity_processUnit; /* The process unit is what the sensor measures, the unit of the process. It is what we are interested in ultimately. Ex. celsius, watt/m^2. etc. */
 
-	uint32_t CO2_fieldValue;/* [cnt] Raw value from the converter */
+	uint32_t CO2_fieldValue;/* [cnt] Raw value from the converter *Not used* */
 	float CO2_processValue;
 	physical_unit_t CO2_fieldUnit;/* The field unit is what the sensor outputs and the acquisition module measures. Ex. Ohms or volts. */
 	physical_unit_t CO2_processUnit; /* The process unit is what the sensor measures, the unit of the process. It is what we are interested in ultimately. Ex. celsius, watt/m^2. etc. */

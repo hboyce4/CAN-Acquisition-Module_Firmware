@@ -4,6 +4,7 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
+../User/CAN_message.c \
 ../User/I2C_sensors.c \
 ../User/UI.c \
 ../User/analog.c \
@@ -15,6 +16,7 @@ C_SRCS += \
 ../User/vcom_serial.c 
 
 OBJS += \
+./User/CAN_message.o \
 ./User/I2C_sensors.o \
 ./User/UI.o \
 ./User/analog.o \
@@ -26,6 +28,7 @@ OBJS += \
 ./User/vcom_serial.o 
 
 C_DEPS += \
+./User/CAN_message.d \
 ./User/I2C_sensors.d \
 ./User/UI.d \
 ./User/analog.d \

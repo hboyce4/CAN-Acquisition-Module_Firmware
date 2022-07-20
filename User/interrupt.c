@@ -12,6 +12,7 @@
 #include "vcom_serial.h"
 #include "analog.h"
 #include "I2C_sensors.h"
+#include "CAN_message.h"
 
 
 /* SysTick */
@@ -426,4 +427,70 @@ void I2C0_IRQHandler(void)
 			I2C_SET_CONTROL_REG(I2C0, I2C_CTL_SI); /* Clear the interrupt flag */
 		}
     }
+}
+
+/**
+  * @brief  CAN0_IRQ Handler.
+  * @param  None.
+  * @return None.
+  */
+void CAN0_IRQHandler(void)
+{
+    uint32_t u8IIDRstatus;
+
+    u8IIDRstatus = CAN0->IIDR;
+
+    if(u8IIDRstatus == 0x00008000)        /* Check Status Interrupt Flag (Error status Int and Status change Int) */
+    {
+        /**************************/
+        /* Status Change interrupt*/
+        /**************************/
+        if(CAN0->STATUS & CAN_STATUS_RXOK_Msk)
+        {
+            CAN0->STATUS &= ~CAN_STATUS_RXOK_Msk;   /* Clear Rx Ok status*/
+
+            printf("RX OK INT\n") ;
+        }
+
+        if(CAN0->STATUS & CAN_STATUS_TXOK_Msk)
+        {
+            CAN0->STATUS &= ~CAN_STATUS_TXOK_Msk;    /* Clear Tx Ok status*/
+
+            printf("TX OK INT\n") ;
+        }
+
+        /**************************/
+        /* Error Status interrupt */
+        /**************************/
+        if(CAN0->STATUS & CAN_STATUS_EWARN_Msk)
+        {
+            printf("EWARN INT\n") ;
+        }
+
+        if(CAN0->STATUS & CAN_STATUS_BOFF_Msk)
+        {
+            printf("BOFF INT\n") ;
+
+            /* Do Init to release busoff pin */
+            CAN0->CON = (CAN_CON_INIT_Msk | CAN_CON_CCE_Msk);
+            CAN0->CON &= (~(CAN_CON_INIT_Msk | CAN_CON_CCE_Msk));
+            while(CAN0->CON & CAN_CON_INIT_Msk);
+        }
+    }
+    else if (u8IIDRstatus!=0)
+    {
+        //printf("=> Interrupt Pointer = %d\n",CAN0->IIDR -1);
+
+        CAN_MsgInterrupt(u8IIDRstatus);
+
+        CAN_CLR_INT_PENDING_BIT(CAN0, ((CAN0->IIDR) -1));      /* Clear Interrupt Pending */
+
+    }
+    else if(CAN0->WU_STATUS == 1)
+    {
+        printf("Wake up\n");
+
+        CAN0->WU_STATUS = 0;                       /* Write '0' to clear */
+    }
+
 }
