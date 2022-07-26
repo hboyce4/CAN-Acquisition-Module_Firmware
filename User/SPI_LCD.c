@@ -7,7 +7,8 @@
 
 /* Adapted from BuyDisplay.com code example */
 /* https://www.buydisplay.com/cog-serial-spi-132x32-graphic-lcd-display-no-backlight-st7567a */
-/* Driver IC is a ST7567A */
+/* Driver IC is a ST7567A
+ * https://www.crystalfontz.com/controllers/Sitronix/ST7567A/483/ */
 
 #include <stdbool.h>
 #include "NuMicro.h"
@@ -28,7 +29,7 @@ void SPI_Init(void){
 	/* Init SPI                                                                                                */
 	/*---------------------------------------------------------------------------------------------------------*/
 	/* Configure as a master, clock idle high, 8-bit transaction, drive output on falling clock edge and latch input on rising edge. */
-	/* Set IP clock divider. SPI clock rate = 100kHz */
+	/* Set IP clock divider. SPI clock rate = 10 MHz */
 	SPI_Open(SPI0, SPI_MASTER, SPI_MODE_3, 8, SPI_SPEED);
 
 	/* Enable the automatic hardware slave select function. Select the SS pin and configure as low-active. */

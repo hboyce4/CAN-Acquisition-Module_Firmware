@@ -10,7 +10,7 @@
 
 #include <stdint.h>
 
-#define SPI_SPEED 100000
+#define SPI_SPEED 10000000 // 10 MHz (20 MHz max according to ST7567A V. 1.2a )
 
 //LCD command/data pin
 #define LCD_CD_PIN PD1

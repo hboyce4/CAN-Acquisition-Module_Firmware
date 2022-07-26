@@ -18,14 +18,20 @@
 #include "user_sys.h"
 #include "CAN_message.h"
 #include "SPI_LCD.h"
+#include "persistent_data.h"
 
 int main (void)
 {
 
     SYS_Init();
 
+
     UART_Open(UART0, DEBUG_UART_SPEED); // Debug port. printf() is piped to this. See retarget.c file
     printf("CAN Acquisition Module - Debug port\n");
+
+    PD_Init();
+    PD_SaveConfig();
+
 
     ADC_Init();
 

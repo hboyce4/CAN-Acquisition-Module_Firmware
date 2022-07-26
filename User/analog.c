@@ -246,7 +246,7 @@ void Analog_ConvertToProcessValues(void){
 
 		switch(analog_channels[i].sensorType){/* According to the sensor type: */
 
-			case SENSOR_NTC: /* If the sensor is an NTC thermistor */
+			case ANALOG_SENSOR_NTC: /* If the sensor is an NTC thermistor */
 
 				if(analog_channels[i].processUnit == UNIT_KELVIN || analog_channels[i].processUnit == UNIT_CELSIUS){/* If Kelvin or Celsius */
 
@@ -267,7 +267,7 @@ void Analog_ConvertToProcessValues(void){
 				}
 				break;
 
-			case SENSOR_NONE: /* If no sensor */
+			case ANALOG_SENSOR_NONE: /* If no sensor */
 				if(analog_channels[i].fieldUnit == analog_channels[i].processUnit){ /* the units have to match because */
 					analog_channels[i].processValue = analog_channels[i].fieldValue_filtered; /* the process value is just copied to the field value */
 				}else{/* Else */

@@ -13,7 +13,8 @@
 #include "interrupt.h"
 #include "analog.h"
 #include "user_sys.h"
-#include "I2C_sensors.h"
+
+#include "persistent_data.h"
 
 /*---------------------------------------------------------------------------------------------------------*/
 /* Global variables                                                                                        */
@@ -284,9 +285,16 @@ void UI_draw_info_page_sys(void){
 
 	VCOM_PushString((char*) line_str);
 
+
+	/*************************************Environmental sensor type ************************************/
 	char I2C_sensor_str[SHORT_STRING_LENGTH];
 	UI_get_I2C_sensor_string(env_sensor.sensorType, I2C_sensor_str);
 	sprintf(line_str, "I2C sensor: %s\n\r", I2C_sensor_str);
+	VCOM_PushString((char*) line_str);
+
+
+	/******************************** Unique ID *********************************************************/
+	sprintf(line_str, "Unique ID: %08X %08X %08X\n\r", g_u32UID[2], g_u32UID[1], g_u32UID[0]);
 	VCOM_PushString((char*) line_str);
 
 }

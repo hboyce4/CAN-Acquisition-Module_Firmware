@@ -12,6 +12,8 @@
 #include <stdint.h>
 #include <string.h>
 #include "analog.h"
+#include "I2C_sensors.h"
+
 
 #define UI_FRAME_INTERVAL_MS	50	/* interval between UI refreshes. Max 255 */
 #define LINE_WIDTH 256
@@ -68,7 +70,7 @@ void UI_increment_value(int8_t, int8_t);
 void UI_decrement_value(int8_t, int8_t);
 
 void UI_get_unit_string(physical_unit_t, char*);
-
+void UI_get_I2C_sensor_string(I2C_sensor_t, char*);
 
 //void UI_serialize_code(uint32_t*, uint8_t, bool);
 //uint32_t UI_get_faults_code(void);

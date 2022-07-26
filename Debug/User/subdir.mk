@@ -15,6 +15,7 @@ C_SRCS += \
 ../User/initialization.c \
 ../User/interrupt.c \
 ../User/main.c \
+../User/persistent_data.c \
 ../User/user_sys.c \
 ../User/vcom_serial.c 
 
@@ -30,6 +31,7 @@ OBJS += \
 ./User/initialization.o \
 ./User/interrupt.o \
 ./User/main.o \
+./User/persistent_data.o \
 ./User/user_sys.o \
 ./User/vcom_serial.o 
 
@@ -45,6 +47,7 @@ C_DEPS += \
 ./User/initialization.d \
 ./User/interrupt.d \
 ./User/main.d \
+./User/persistent_data.d \
 ./User/user_sys.d \
 ./User/vcom_serial.d 
 

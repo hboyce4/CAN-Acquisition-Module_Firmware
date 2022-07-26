@@ -45,14 +45,17 @@
 /* Type definitions           				                                                               */
 /*---------------------------------------------------------------------------------------------------------*/
 
-typedef enum {SENSOR_NONE, SENSOR_NTC, SENSOR_PYRANOMETER, SENSOR_THERMOCOUPLE} analog_sensor_t;
+typedef enum {ANALOG_SENSOR_NONE, ANALOG_SENSOR_NTC, ANALOG_SENSOR_PYRANOMETER, ANALOG_SENSOR_THERMOCOUPLE} analog_sensor_t;
 
 typedef struct analog_channel{ /* Process values or state variables */
+
+	bool isEnabled; /* Whether or not the channel is active */
 
 	uint32_t rawValue; /* [cnt] Raw value from the converter */
 	float fieldValue;
 	float fieldValue_filtered;
 	float processValue;
+
 
 	physical_unit_t fieldUnit;/* The field unit is what the sensor outputs and the acquisition module measures. Ex. Ohms or volts. */
 	physical_unit_t processUnit; /* The process unit is what the sensor measures, the unit of the process. It is what we are interested in ultimately. Ex. celsius, watt/m^2. etc. */
