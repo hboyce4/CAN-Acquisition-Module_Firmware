@@ -20,5 +20,8 @@ extern uint32_t g_u32UID[UID_SIZE];
 
 void PD_Init(void);
 void PD_SaveConfig(void);
+void PD_LoadConfig(void);
+
+uint32_t PD_ComputeConfigChecksum(void);
 
 #endif /* PERSISTENT_DATA_H_ */

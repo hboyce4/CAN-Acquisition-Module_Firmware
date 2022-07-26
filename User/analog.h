@@ -34,10 +34,10 @@
 #define ANALOG_SAMPLE_INTERVAL_MS 100 /* [ms] Time interval for acquisition of new samples and filtering */
 #define ANALOG_SAMPLE_T (ANALOG_SAMPLE_INTERVAL_MS/1000.0) /* [s] */
 
-#define ANALOG_BIAS_RESISTOR_VALUE 6200.0 /* [Ohms] Value of the NTC biasing reistor */
+#define ANALOG_BIAS_RESISTOR_DEFAULT 6200.0 /* [Ohms] Value of the NTC biasing reistor */
 #define ANALOG_NTC_T_ZERO 298.15 /* [K] Equals 25 degree C. Temperature at which the NTC's R_Zero is measured. */
 
-#define ANALOG_VOLTAGE_GAIN 50 /* [unitless] voltage gain of the voltage inputs */
+#define ANALOG_VOLTAGE_GAIN_DEFAULT 50 /* [unitless] voltage gain of the voltage inputs */
 
 #define ANALOG_LPF_TAU 10 /* [s] Amount of time after which 63% of step response is reached. TAU = R*C = 1/(2*pi*f_c) */
 

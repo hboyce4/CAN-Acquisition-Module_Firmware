@@ -21,6 +21,9 @@
 /*---------------------------------------------------------------------------------------------------------*/
 
 info_page_state_t gInfoPage = 0; /* Track which page we're on*/
+param_page_state_t gParamPage = 0; /* Track which page we're on*/
+
+int8_t g_i8RowSel, g_i8ColumnSel;
 
 /* Dummy placeholder variables for future expansion */
 int8_t gi8Parameter0_0 = 0;
@@ -38,18 +41,36 @@ int8_t gi8Parameter3_1 = 0;
 
 
 /* XXXus in Debug, XXXus in Release ( -O2 ) */
-void UI_draw(int8_t row_sel, int8_t col_sel){/* 60-ish characters width*/
+void UI_draw(void){/* 60-ish characters width*/
 
 	/* Cursor home : \x1B[H */
 
     /* Current state display */
 	UI_draw_title();
 
-	/* Menu input*/
-	UI_draw_parameter_line_0(row_sel, col_sel);
-	UI_draw_parameter_line_1(row_sel, col_sel);
-	UI_draw_parameter_line_2(row_sel, col_sel);
-	UI_draw_parameter_line_3(row_sel, col_sel);
+	switch(gParamPage){ // Depending on which one is selected
+
+		case PARAM_PAGE_SYS:
+			UI_draw_param_page_sys();
+			break;
+
+		case PARAM_PAGE_CAN:
+			UI_draw_param_page_CAN();
+			break;
+
+		case PARAM_PAGE_ANALOG:
+			UI_draw_param_page_analog();
+			break;
+
+		case PARAM_PAGE_I2C:
+			UI_draw_param_page_I2C();
+			break;
+
+		default:
+			UI_draw_param_page_sys();
+			break;
+	}
+
 
 	UI_draw_line_separator();
 
@@ -97,7 +118,7 @@ void UI_draw(int8_t row_sel, int8_t col_sel){/* 60-ish characters width*/
 
 }
 
-void UI_read_user_input(int8_t* p_row_sel, int8_t* p_col_sel){
+void UI_read_user_input(void){
 
   	uint8_t user_char;
   	static uint8_t state = 0;
@@ -119,30 +140,30 @@ void UI_read_user_input(int8_t* p_row_sel, int8_t* p_col_sel){
 		} else if (state == 2){
 
 			if(user_char == 'A'){/* Up */
-				(*p_row_sel)--;/*Move the selection up*/
-				if(*p_row_sel<0){/* If the selection goes past the highest row*/
-					*p_row_sel = 0;/* Stay at the highest row, don't wrap around*/
+				(g_i8RowSel)--;/*Move the selection up*/
+				if(g_i8RowSel<0){/* If the selection goes past the highest row*/
+					g_i8RowSel = 0;/* Stay at the highest row, don't wrap around*/
 				}
 				state = 0;/* Finally, reset the state machine*/
 
 			}else if (user_char == 'B'){ /* Down*/
-				(*p_row_sel)++;/*Move the selection down*/
-				if(*p_row_sel >= UI_MENU_NB_ROWS){/* If the selection goes past the lowest row*/
-					*p_row_sel = (UI_MENU_NB_ROWS-1);/* Stay at the lowest row, don't wrap around*/
+				(g_i8RowSel)++;/*Move the selection down*/
+				if(g_i8RowSel >= UI_MENU_NB_ROWS){/* If the selection goes past the lowest row*/
+					g_i8RowSel = (UI_MENU_NB_ROWS-1);/* Stay at the lowest row, don't wrap around*/
 				}
 				state = 0;/* Finally, reset the state machine*/
 
 			}else if (user_char == 'C'){ /* Right */
-				(*p_col_sel)++;/*Move the selection right*/
-				if(*p_col_sel >= UI_MENU_NB_COLUMNS){/* If the selection goes past the lowest row*/
-					*p_col_sel = (UI_MENU_NB_COLUMNS-1);/* Stay at the lowest row, don't wrap around*/
+				(g_i8ColumnSel)++;/*Move the selection right*/
+				if(g_i8ColumnSel >= UI_MENU_NB_COLUMNS){/* If the selection goes past the lowest row*/
+					g_i8ColumnSel = (UI_MENU_NB_COLUMNS-1);/* Stay at the lowest row, don't wrap around*/
 				}
 				state = 0;/* Finally, reset the state machine*/
 
 			}else if (user_char == 'D'){ /* Left*/
-				(*p_col_sel)--;/*Move the selection left*/
-				if(*p_col_sel<0){/* If the selection goes past the highest row*/
-					*p_col_sel = 0;/* Stay at the highest row, don't wrap around*/
+				(g_i8ColumnSel)--;/*Move the selection left*/
+				if(g_i8ColumnSel<0){/* If the selection goes past the highest row*/
+					g_i8ColumnSel = 0;/* Stay at the highest row, don't wrap around*/
 				}
 				state = 0;/* Finally, reset the state machine*/
 
@@ -153,32 +174,32 @@ void UI_read_user_input(int8_t* p_row_sel, int8_t* p_col_sel){
 		}
 
 		if(user_char == '+'){/* If a '+' is received, the selected value is incremented*/
-			UI_increment_value(*p_row_sel,*p_col_sel);
+			UI_increment_value(g_i8RowSel,g_i8ColumnSel);
 		}else if (user_char == '-'){/* If a '-' is received, the selected value is decremented*/
-			UI_decrement_value(*p_row_sel,*p_col_sel);
+			UI_decrement_value(g_i8RowSel,g_i8ColumnSel);
 		}
 		//printf("\nReceived character '0x%x' \n", user_char); /* for debug */
 
 	}
 }
 
-void UI_increment_value(int8_t row_sel, int8_t col_sel){
+void UI_increment_value(void){
 
-	switch(row_sel){
+	switch(g_i8RowSel){
 
 		case 0:
-			if(col_sel == 0){
+			if(g_i8ColumnSel == 0){
 				gi8Parameter0_0++;
-			}else if (col_sel == 1){
+			}else if (g_i8ColumnSel == 1){
 				gi8Parameter0_1++;
 			}
 			break;
 
 
 		case 1:
-			if(col_sel == 0){
+			if(g_i8ColumnSel == 0){
 				gi8Parameter1_0++;
-			}else if (col_sel == 1){
+			}else if (g_i8ColumnSel == 1){
 				/*inverter_setpoints.V_DC_diff_setpoint += FLOAT_INCREMENT;*/
 				gi8Parameter1_1++;
 			}
@@ -186,9 +207,9 @@ void UI_increment_value(int8_t row_sel, int8_t col_sel){
 
 
 		case 2:
-			if(col_sel == 0){
+			if(g_i8ColumnSel == 0){
 				gi8Parameter2_0++;
-			}else if (col_sel == 1){
+			}else if (g_i8ColumnSel == 1){
 				gi8Parameter2_1++;
 			}
 			break;
@@ -196,11 +217,11 @@ void UI_increment_value(int8_t row_sel, int8_t col_sel){
 
 		case 3:
 
-			if(col_sel == 0){
-				if(gInfoPage < HIGHEST_INFO_PAGE){
+			if(g_i8ColumnSel == 0){
+				if(gInfoPage < UI_HIGHEST_INFO_PAGE){
 					gInfoPage++;
 				}
-			}else if (col_sel == 1){
+			}else if (g_i8ColumnSel == 1){
 				gi8Parameter3_1++;
 			}
 			break;
@@ -209,48 +230,47 @@ void UI_increment_value(int8_t row_sel, int8_t col_sel){
 
 }
 
-void UI_decrement_value(int8_t row_sel, int8_t col_sel){
+void UI_decrement_value(void){
 
-	switch(row_sel){
+	switch(g_i8RowSel){
 
 		case 0:
-			if(col_sel == 0){
+			if(g_i8ColumnSel == 0){
 				gi8Parameter0_0--;
-			}else if (col_sel == 1){
+			}else if (g_i8ColumnSel == 1){
 				gi8Parameter0_1--;
 			}
 			break;
 		case 1:
-			if(col_sel == 0){
+			if(g_i8ColumnSel == 0){
 				/*inverter_setpoints.precharge_threshold = FLOAT_INCREMENT;*/
 				gi8Parameter1_0--;
-			}else if (col_sel == 1){
+			}else if (g_i8ColumnSel == 1){
 				/*inverter_setpoints.V_DC_diff_setpoint -= FLOAT_INCREMENT;*/
 				gi8Parameter1_1--;
 			}
 			break;
 
 		case 2:
-			if(col_sel == 0){
+			if(g_i8ColumnSel == 0){
 				gi8Parameter2_0--;
-			}else if (col_sel == 1){
+			}else if (g_i8ColumnSel == 1){
 				gi8Parameter2_1--;
 			}
 			break;
 
 		case 3:
-			if(col_sel == 0){
+			if(g_i8ColumnSel == 0){
 				if(gInfoPage > 0){
 					gInfoPage--;
 				}
-			}else if (col_sel == 1){
+			}else if (g_i8ColumnSel == 1){
 				gi8Parameter3_1--;
 			}
 			break;
 
 	}
 }
-
 
 void UI_draw_title(void){
 
@@ -260,6 +280,147 @@ void UI_draw_title(void){
 
 }
 
+void UI_draw_param_page_sys(void){
+
+}
+void UI_draw_param_page_CAN(void){
+
+}
+void UI_draw_param_page_analog(void){
+
+
+	/*********************** First Line ***********************************/
+	char line_str[LINE_WIDTH];
+	char color_left_str[SHORT_STRING_LENGTH];
+	char color_right_str[SHORT_STRING_LENGTH];
+
+	/* Column 0 */
+	if(g_i8RowSel == 0 && g_i8ColumnSel == 0){
+		strcpy(color_left_str, COLOR_SELECTED);
+	}else{
+		strcpy(color_left_str, COLOR_NOT_SELECTED);
+	}
+
+	/* Column 1 */
+	if(g_i8RowSel == 0 && g_i8ColumnSel == 1){
+		strcpy(color_right_str, COLOR_SELECTED);
+	}else{
+		strcpy(color_right_str, COLOR_NOT_SELECTED);
+	}
+
+	sprintf(line_str,"Parameter 1: %s%i%s %sParameter 2: %s%i V%s\n\r",color_left_str,gi8Parameter0_0,COLOR_DEFAULT,
+			CURSOR_RIGHT_COLUMN, color_right_str,gi8Parameter0_1,COLOR_DEFAULT);
+
+	VCOM_PushString((char*) line_str);
+
+	/*********************** Second Line ***********************************/
+
+	/* Column 0 */
+	if(g_i8RowSel == 1 && g_i8ColumnSel == 0){
+		strcpy(color_left_str, COLOR_SELECTED);
+	}else{
+		strcpy(color_left_str, COLOR_NOT_SELECTED);
+	}
+
+	/* Column 1 */
+	if(g_i8RowSel == 1 && g_i8ColumnSel == 1){
+		strcpy(color_right_str, COLOR_SELECTED);
+	}else{
+		strcpy(color_right_str, COLOR_NOT_SELECTED);
+	}
+
+	sprintf(line_str,"Parameter 3: %s%i%s %sParameter 4: %s%i%s\n\r",color_left_str,gi8Parameter1_0,COLOR_DEFAULT,
+	CURSOR_RIGHT_COLUMN, color_right_str,gi8Parameter1_1,COLOR_DEFAULT);
+
+	VCOM_PushString((char*) line_str);
+
+	/*********************** Third Line ***********************************/
+
+	/* Column 0 */
+	if(g_i8RowSel == 2 && g_i8ColumnSel == 0){
+		strcpy(color_left_str, COLOR_SELECTED);
+	}else{
+		strcpy(color_left_str, COLOR_NOT_SELECTED);
+	}
+
+	/* Column 1 */
+	if(g_i8RowSel == 2 && g_i8ColumnSel == 1){
+		strcpy(color_right_str, COLOR_SELECTED);
+	}else{
+		strcpy(color_right_str, COLOR_NOT_SELECTED);
+	}
+
+	sprintf(line_str,"Parameter 5: %s%d%s %sParameter 6: %s%d%s\n\r",color_left_str,gi8Parameter2_0,COLOR_DEFAULT,
+			CURSOR_RIGHT_COLUMN, color_right_str,gi8Parameter2_1,COLOR_DEFAULT);
+
+	VCOM_PushString((char*) line_str);
+
+	/*********************** Fourth Line ***********************************/
+
+	sprintf(line_str,"Info page: ");
+	/* Column 0 */
+	if(g_i8RowSel == 3 && g_i8ColumnSel == 0){
+		strcat(line_str, COLOR_SELECTED);
+	}else{
+		strcat(line_str, COLOR_NOT_SELECTED);
+	}
+
+	switch(gInfoPage){
+
+		case INFO_PAGE_SYS:
+			strcat(line_str, "System");
+			break;
+
+		case INFO_PAGE_CAN:
+			strcat(line_str, "CANbus");
+			break;
+
+		case INFO_PAGE_PROCESS:
+			strcat(line_str, "Process values");
+			break;
+
+		case INFO_PAGE_FIELD:
+			strcat(line_str, "Field values unf.");
+			break;
+
+		case INFO_PAGE_NOISE:
+			strcat(line_str, "RMS Noise");
+			break;
+
+
+		case INFO_PAGE_HUM:
+			strcat(line_str, "Humidity");
+			break;
+
+		case INFO_PAGE_CO2:
+			strcat(line_str, "CO2");
+			break;
+	}
+
+	strcat(line_str, COLOR_DEFAULT);
+	strcat(line_str, CURSOR_RIGHT_COLUMN);
+	strcat(line_str, "Parameter 7: ");
+
+	/* Column 1 */
+	if(g_i8RowSel == 3 && g_i8ColumnSel == 1){
+		strcat(line_str, COLOR_SELECTED);
+	}else{
+		strcat(line_str, COLOR_NOT_SELECTED);
+	}
+
+	char right_param_value_str[SHORT_STRING_LENGTH];
+	sprintf(right_param_value_str, "%d", gi8Parameter3_1);
+
+	strcat(line_str, right_param_value_str);
+	strcat(line_str, COLOR_DEFAULT);
+	strcat(line_str, " \n\r");
+
+	VCOM_PushString((char*) line_str);
+
+}
+void UI_draw_param_page_I2C(void){
+
+}
 
 void UI_draw_info_page_sys(void){
 
@@ -298,7 +459,6 @@ void UI_draw_info_page_sys(void){
 	VCOM_PushString((char*) line_str);
 
 }
-
 void UI_draw_info_page_PV(void){ /* Process values */
 
 
@@ -369,7 +529,6 @@ void UI_draw_info_page_PV(void){ /* Process values */
 
 
 }
-
 void UI_draw_info_page_FV(void){ /* Field values */
 
 
@@ -438,7 +597,6 @@ void UI_draw_info_page_FV(void){ /* Field values */
 	VCOM_PushString((char*) line_str);
 
 }
-
 void UI_draw_info_page_noise(void){ /* Field values */
 
 
@@ -492,156 +650,9 @@ void UI_draw_info_page_noise(void){ /* Field values */
 
 }
 
-void UI_draw_line_separator(){
+void UI_draw_line_separator(void){
 
 	VCOM_PushString("**************************************************\n\r");
-}
-
-void UI_draw_parameter_line_0(int8_t row_sel, int8_t col_sel){
-
-	char line_A_str[LINE_WIDTH];
-	char color_left_str[SHORT_STRING_LENGTH];
-	char color_right_str[SHORT_STRING_LENGTH];
-
-	/* Column 0 */
-	if(row_sel == 0 && col_sel == 0){
-		strcpy(color_left_str, COLOR_SELECTED);
-	}else{
-		strcpy(color_left_str, COLOR_NOT_SELECTED);
-	}
-
-	/* Column 1 */
-	if(row_sel == 0 && col_sel == 1){
-		strcpy(color_right_str, COLOR_SELECTED);
-	}else{
-		strcpy(color_right_str, COLOR_NOT_SELECTED);
-	}
-
-	sprintf(line_A_str,"Parameter 1: %s%i%s %sParameter 2: %s%i V%s\n\r",color_left_str,gi8Parameter0_0,COLOR_DEFAULT,
-			CURSOR_RIGHT_COLUMN, color_right_str,gi8Parameter0_1,COLOR_DEFAULT);
-
-	VCOM_PushString((char*) line_A_str);
-
-}
-
-void UI_draw_parameter_line_1(int8_t row_sel, int8_t col_sel){
-
-	char line_B_str[LINE_WIDTH];
-	char color_left_str[SHORT_STRING_LENGTH];
-	char color_right_str[SHORT_STRING_LENGTH];
-
-	/* Column 0 */
-	if(row_sel == 1 && col_sel == 0){
-		strcpy(color_left_str, COLOR_SELECTED);
-	}else{
-		strcpy(color_left_str, COLOR_NOT_SELECTED);
-	}
-
-	/* Column 1 */
-	if(row_sel == 1 && col_sel == 1){
-		strcpy(color_right_str, COLOR_SELECTED);
-	}else{
-		strcpy(color_right_str, COLOR_NOT_SELECTED);
-	}
-
-	sprintf(line_B_str,"Parameter 3: %s%i%s %sParameter 4: %s%i%s\n\r",color_left_str,gi8Parameter1_0,COLOR_DEFAULT,
-	CURSOR_RIGHT_COLUMN, color_right_str,gi8Parameter1_1,COLOR_DEFAULT);
-
-	VCOM_PushString((char*) line_B_str);
-
-}
-
-void UI_draw_parameter_line_2(int8_t row_sel, int8_t col_sel){
-
-	char line_C_str[LINE_WIDTH];
-	char color_left_str[SHORT_STRING_LENGTH];
-	char color_right_str[SHORT_STRING_LENGTH];
-
-	/* Column 0 */
-	if(row_sel == 2 && col_sel == 0){
-		strcpy(color_left_str, COLOR_SELECTED);
-	}else{
-		strcpy(color_left_str, COLOR_NOT_SELECTED);
-	}
-
-	/* Column 1 */
-	if(row_sel == 2 && col_sel == 1){
-		strcpy(color_right_str, COLOR_SELECTED);
-	}else{
-		strcpy(color_right_str, COLOR_NOT_SELECTED);
-	}
-
-	sprintf(line_C_str,"Parameter 5: %s%d%s %sParameter 6: %s%d%s\n\r",color_left_str,gi8Parameter2_0,COLOR_DEFAULT,
-			CURSOR_RIGHT_COLUMN, color_right_str,gi8Parameter2_1,COLOR_DEFAULT);
-
-	VCOM_PushString((char*) line_C_str);
-
-}
-
-void UI_draw_parameter_line_3(int8_t row_sel, int8_t col_sel){
-
-	char line_D_str[LINE_WIDTH];
-
-	sprintf(line_D_str,"Info page: ");
-	/* Column 0 */
-	if(row_sel == 3 && col_sel == 0){
-		strcat(line_D_str, COLOR_SELECTED);
-	}else{
-		strcat(line_D_str, COLOR_NOT_SELECTED);
-	}
-
-	switch(gInfoPage){
-
-		case INFO_PAGE_SYS:
-			strcat(line_D_str, "System");
-			break;
-
-		case INFO_PAGE_CAN:
-			strcat(line_D_str, "CANbus");
-			break;
-
-		case INFO_PAGE_PROCESS:
-			strcat(line_D_str, "Process values");
-			break;
-
-		case INFO_PAGE_FIELD:
-			strcat(line_D_str, "Field values unf.");
-			break;
-
-		case INFO_PAGE_NOISE:
-			strcat(line_D_str, "RMS Noise");
-			break;
-
-
-		case INFO_PAGE_HUM:
-			strcat(line_D_str, "Humidity");
-			break;
-
-		case INFO_PAGE_CO2:
-			strcat(line_D_str, "CO2");
-			break;
-	}
-
-	strcat(line_D_str, COLOR_DEFAULT);
-	strcat(line_D_str, CURSOR_RIGHT_COLUMN);
-	strcat(line_D_str, "Parameter 7: ");
-
-	/* Column 1 */
-	if(row_sel == 3 && col_sel == 1){
-		strcat(line_D_str, COLOR_SELECTED);
-	}else{
-		strcat(line_D_str, COLOR_NOT_SELECTED);
-	}
-
-	char right_param_value_str[SHORT_STRING_LENGTH];
-	sprintf(right_param_value_str, "%d", gi8Parameter3_1);
-
-	strcat(line_D_str, right_param_value_str);
-	strcat(line_D_str, COLOR_DEFAULT);
-	strcat(line_D_str, " \n\r");
-
-	VCOM_PushString((char*) line_D_str);
-
 }
 
 void UI_get_unit_string(physical_unit_t unit_type, char* string){/* Max. 8 characters long */
@@ -686,7 +697,6 @@ void UI_get_unit_string(physical_unit_t unit_type, char* string){/* Max. 8 chara
 
 	}
 }
-
 void UI_get_I2C_sensor_string(I2C_sensor_t type, char* string){
 
 	switch(type){
@@ -711,35 +721,5 @@ void UI_get_I2C_sensor_string(I2C_sensor_t type, char* string){
 
 }
 
-
-//void UI_serialize_code(uint32_t* faults_code, uint8_t bit_number, bool flag){
-//
-//	if(flag){// If the flag is true
-//		*faults_code |= (1<<bit_number);// Add a 1
-//	}
-//
-//
-//}
-//
-//uint32_t UI_get_faults_code(void){
-//
-//	uint32_t faults_code = 0;
-//
-//	/* Bit 00*/UI_serialize_code(&faults_code, 0, inverter_faults.PLL_sync_fault);
-//	/* Bit 01*/UI_serialize_code(&faults_code, 1, inverter_faults.i_sync_fault);
-//	/* Bit 02*/UI_serialize_code(&faults_code, 2, inverter_faults.OV_v_AC_fault);
-//	/* Bit 03*/UI_serialize_code(&faults_code, 3, inverter_faults.OV_V_DC_plus_fault);
-//	/* Bit 04*/UI_serialize_code(&faults_code, 4, inverter_faults.OV_V_DC_minus_fault);
-//	/* Bit 05*/UI_serialize_code(&faults_code, 5, inverter_faults.UV_V_DC_plus_fault);
-//	/* Bit 06*/UI_serialize_code(&faults_code, 6, inverter_faults.UV_V_DC_minus_fault);
-//	/* Bit 07*/UI_serialize_code(&faults_code, 7, inverter_faults.UV2_V_DC_plus_fault);
-//	/* Bit 08*/UI_serialize_code(&faults_code, 8, inverter_faults.UV2_V_DC_minus_fault);
-//	/* Bit 09*/UI_serialize_code(&faults_code, 9, inverter_faults.OV_V_DC_diff_fault);
-//	/* Bit 10*/UI_serialize_code(&faults_code, 10, inverter_faults.precharge_timeout_fault);
-//	/* Bit 11*/UI_serialize_code(&faults_code, 11, inverter_faults.charge_timeout_fault);
-//	/* Bit 12*/UI_serialize_code(&faults_code, 12, g_Interrupt_real_time_fault);
-//
-//	return faults_code;
-//}
 
 

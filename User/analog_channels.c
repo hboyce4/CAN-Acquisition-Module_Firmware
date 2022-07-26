@@ -12,12 +12,12 @@
 /*---------------------------------------------------------------------------------------------------------*/
 
 
-volatile analog_channel_t analog_channels[EADC_TOTAL_CHANNELS] = { /* Default channel arrangement */
+volatile analog_channel_t analog_channels[EADC_TOTAL_CHANNELS] = { /* Default channel configuration */
 		[0] = {.isEnabled = true,
 				.fieldUnit = UNIT_OHM,
 				.processUnit = UNIT_CELSIUS,
 				.sensorType = ANALOG_SENSOR_NTC,
-				.biasResistor = ANALOG_BIAS_RESISTOR_VALUE,
+				.biasResistor = ANALOG_BIAS_RESISTOR_DEFAULT,
 				.NTCRZero = 10000,
 				.NTCBeta = 3900},
 
@@ -25,7 +25,7 @@ volatile analog_channel_t analog_channels[EADC_TOTAL_CHANNELS] = { /* Default ch
 				.fieldUnit = UNIT_OHM,
 				.processUnit = UNIT_CELSIUS,
 				.sensorType = ANALOG_SENSOR_NTC,
-				.biasResistor = ANALOG_BIAS_RESISTOR_VALUE,
+				.biasResistor = ANALOG_BIAS_RESISTOR_DEFAULT,
 				.NTCRZero = 10000,
 				.NTCBeta = 3900},
 
@@ -33,7 +33,7 @@ volatile analog_channel_t analog_channels[EADC_TOTAL_CHANNELS] = { /* Default ch
 				.fieldUnit = UNIT_OHM,
 				.processUnit = UNIT_CELSIUS,
 				.sensorType = ANALOG_SENSOR_NTC,
-				.biasResistor = ANALOG_BIAS_RESISTOR_VALUE,
+				.biasResistor = ANALOG_BIAS_RESISTOR_DEFAULT,
 				.NTCRZero = 10000,
 				.NTCBeta = 3900},
 
@@ -41,7 +41,7 @@ volatile analog_channel_t analog_channels[EADC_TOTAL_CHANNELS] = { /* Default ch
 				.fieldUnit = UNIT_OHM,
 				.processUnit = UNIT_CELSIUS,
 				.sensorType = ANALOG_SENSOR_NTC,
-				.biasResistor = ANALOG_BIAS_RESISTOR_VALUE,
+				.biasResistor = ANALOG_BIAS_RESISTOR_DEFAULT,
 				.NTCRZero = 10000,
 				.NTCBeta = 3900},
 
@@ -49,7 +49,7 @@ volatile analog_channel_t analog_channels[EADC_TOTAL_CHANNELS] = { /* Default ch
 				.fieldUnit = UNIT_OHM,
 				.processUnit = UNIT_CELSIUS,
 				.sensorType = ANALOG_SENSOR_NTC,
-				.biasResistor = ANALOG_BIAS_RESISTOR_VALUE,
+				.biasResistor = ANALOG_BIAS_RESISTOR_DEFAULT,
 				.NTCRZero = 10000,
 				.NTCBeta = 3900},
 
@@ -57,7 +57,7 @@ volatile analog_channel_t analog_channels[EADC_TOTAL_CHANNELS] = { /* Default ch
 				.fieldUnit = UNIT_OHM,
 				.processUnit = UNIT_CELSIUS,
 				.sensorType = ANALOG_SENSOR_NTC,
-				.biasResistor = ANALOG_BIAS_RESISTOR_VALUE,
+				.biasResistor = ANALOG_BIAS_RESISTOR_DEFAULT,
 				.NTCRZero = 10000,
 				.NTCBeta = 3900},
 
@@ -65,7 +65,7 @@ volatile analog_channel_t analog_channels[EADC_TOTAL_CHANNELS] = { /* Default ch
 				.fieldUnit = UNIT_OHM,
 				.processUnit = UNIT_CELSIUS,
 				.sensorType = ANALOG_SENSOR_NTC,
-				.biasResistor = ANALOG_BIAS_RESISTOR_VALUE,
+				.biasResistor = ANALOG_BIAS_RESISTOR_DEFAULT,
 				.NTCRZero = 10000,
 				.NTCBeta = 3900},
 
@@ -73,7 +73,7 @@ volatile analog_channel_t analog_channels[EADC_TOTAL_CHANNELS] = { /* Default ch
 				.fieldUnit = UNIT_OHM,
 				.processUnit = UNIT_CELSIUS,
 				.sensorType = ANALOG_SENSOR_NTC,
-				.biasResistor = ANALOG_BIAS_RESISTOR_VALUE,
+				.biasResistor = ANALOG_BIAS_RESISTOR_DEFAULT,
 				.NTCRZero = 10000,
 				.NTCBeta = 3977},
 
@@ -81,25 +81,25 @@ volatile analog_channel_t analog_channels[EADC_TOTAL_CHANNELS] = { /* Default ch
 				.fieldUnit = UNIT_MILLIVOLT,
 				.processUnit = UNIT_MILLIVOLT,
 				.sensorType = ANALOG_SENSOR_NONE,
-				.voltageGain = ANALOG_VOLTAGE_GAIN},
+				.voltageGain = ANALOG_VOLTAGE_GAIN_DEFAULT},
 
 		[9] = {.isEnabled = true,
 				.fieldUnit = UNIT_MILLIVOLT,
 				.processUnit = UNIT_MILLIVOLT,
 				.sensorType = ANALOG_SENSOR_NONE,
-				.voltageGain = ANALOG_VOLTAGE_GAIN},
+				.voltageGain = ANALOG_VOLTAGE_GAIN_DEFAULT},
 
 		[10] = {.isEnabled = true,
 				.fieldUnit = UNIT_MILLIVOLT,
 				.processUnit = UNIT_MILLIVOLT,
 				.sensorType = ANALOG_SENSOR_NONE,
-				.voltageGain = ANALOG_VOLTAGE_GAIN},
+				.voltageGain = ANALOG_VOLTAGE_GAIN_DEFAULT},
 
 		[11] = {.isEnabled = true,
 				.fieldUnit = UNIT_MILLIVOLT,
 				.processUnit = UNIT_MILLIVOLT,
 				.sensorType = ANALOG_SENSOR_NONE,
-				.voltageGain = ANALOG_VOLTAGE_GAIN},
+				.voltageGain = ANALOG_VOLTAGE_GAIN_DEFAULT},
 
 };
 

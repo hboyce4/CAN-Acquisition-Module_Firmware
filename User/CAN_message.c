@@ -26,6 +26,9 @@
 STR_CANMSG_T rrMsg;
 
 volatile bool g_bCANSyncFlag;
+uint32_t g_CANSpeed = CAN_SPEED_DEFAULT;
+uint8_t g_CANNodeID = CAN_NODE_ID_DEFAULT;
+
 
 /*---------------------------------------------------------------------------------------------------------*/
 /* ISR to handle CAN interrupt event                                                            */
@@ -49,7 +52,7 @@ void CAN_MsgInterrupt(uint32_t u32IIDR){
 
 void CAN_Init(void){
 
-	CAN_Open(CAN0,  CAN_SPEED, CAN_NORMAL_MODE);
+	CAN_Open(CAN0,  g_CANSpeed, CAN_NORMAL_MODE);
 
 	/* Set RX Message (only SYNC message for now, in our case), as message zero */
 	/* See CAN_message.h for SYNC message definition */
@@ -72,12 +75,12 @@ void CAN_Service(void){
 		/* and send messages */
 
 		/* See CAN_message.h for definitions */
-		CAN_BuildAndSendMessage_32(1, 0x00000180 + CAN_NODE_ID, &env_sensor.temperature_fieldValue, &env_sensor.temperature_processValue);
-		CAN_BuildAndSendMessage_32(2, 0x00000280 + CAN_NODE_ID, &env_sensor.humidity_fieldValue, &env_sensor.humidity_processValue);
-		CAN_BuildAndSendMessage_32(3, 0x00000380 + CAN_NODE_ID, &env_sensor.CO2_fieldValue, &env_sensor.CO2_processValue);
+		CAN_BuildAndSendMessage_32(1, 0x00000180 + g_CANNodeID, &env_sensor.temperature_fieldValue, &env_sensor.temperature_processValue);
+		CAN_BuildAndSendMessage_32(2, 0x00000280 + g_CANNodeID, &env_sensor.humidity_fieldValue, &env_sensor.humidity_processValue);
+		CAN_BuildAndSendMessage_32(3, 0x00000380 + g_CANNodeID, &env_sensor.CO2_fieldValue, &env_sensor.CO2_processValue);
 		uint8_t i;
 		for(i = 0; i < EADC_TOTAL_CHANNELS; i++){/* Messages 4 to 15 */
-			CAN_BuildAndSendMessage_32(i + 4, 0x00001080 + (0x100*i) + CAN_NODE_ID, &analog_channels[i].fieldValue, &analog_channels[i].processValue);
+			CAN_BuildAndSendMessage_32(i + 4, 0x00001080 + (0x100*i) + g_CANNodeID, &analog_channels[i].fieldValue, &analog_channels[i].processValue);
 		}
 
 		printf("CAN SYNC received.\n");

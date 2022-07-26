@@ -94,8 +94,8 @@
  *
  * */
 
-#define CAN_SPEED 125000
-#define CAN_NODE_ID 3 /* 1 to 127 */
+#define CAN_SPEED_DEFAULT 125000
+#define CAN_NODE_ID_DEFAULT 1 /* 1 to 127 */
 
 
 

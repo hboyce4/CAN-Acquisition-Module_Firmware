@@ -30,7 +30,7 @@ int main (void)
     printf("CAN Acquisition Module - Debug port\n");
 
     PD_Init();
-    PD_SaveConfig();
+    //PD_SaveConfig();
 
 
     ADC_Init();
@@ -62,8 +62,8 @@ int main (void)
     	// All the time
         VCOM_TransferData();
 
-        int8_t i8RowSel, i8ColumnSel;
-        UI_read_user_input(&i8RowSel,&i8ColumnSel);
+
+        UI_read_user_input();
 
         I2C_sensorCheckIfNewDataAndConvert();
 
