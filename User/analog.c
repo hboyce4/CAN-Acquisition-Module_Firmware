@@ -275,7 +275,7 @@ void Analog_ConvertToProcessValues(void){
 					Error_Set(ERROR_INVALID_CONFIG);
 					static bool sent = false;
 					if(!sent){
-						printf("Unit mismatch on channel %u\n+", i); /* Print error message */
+						printf("Unit mismatch on channel %u\n", i); /* Print error message */
 						sent = true;
 					}
 

@@ -12,7 +12,7 @@
 #include "CAN_message.h"
 #include "errors.h"
 
-
+/* The code assumes everything fits on a single page! (4kB ) */
 #define PD_ANALOG_CHANNEL_OFFSET 0x40 /* 64 bytes or 16 floats per channel */
 #define PD_ENABLE_OFFSET 0
 #define PD_SENSOR_TYPE_OFFSET 4
@@ -93,61 +93,63 @@ void PD_SaveConfig(void){
 		/* .. and the DFEN bit is set to "data flash enabled" */
 
 
-		uint8_t i;
-		uint32_t temp;
-		for(i = 0; i < EADC_TOTAL_CHANNELS; i++){
+		/* Erase */
+		FMC_Erase(DataFlashBaseAdress);/* Erase one page, starting at DFBA. */
 
-			FMC_Write(DataFlashBaseAdress + (i * PD_ANALOG_CHANNEL_OFFSET) +  PD_ENABLE_OFFSET, (uint32_t)analog_channels[i].isEnabled);
-			FMC_Write(DataFlashBaseAdress + (i * PD_ANALOG_CHANNEL_OFFSET) +  PD_SENSOR_TYPE_OFFSET, (uint32_t)analog_channels[i].sensorType);
-			FMC_Write(DataFlashBaseAdress + (i * PD_ANALOG_CHANNEL_OFFSET) +  PD_FIELD_UNIT_OFFSET, (uint32_t)analog_channels[i].fieldUnit);
-			FMC_Write(DataFlashBaseAdress + (i * PD_ANALOG_CHANNEL_OFFSET) +  PD_PROCESS_UNIT_OFFSET, (uint32_t)analog_channels[i].processUnit);
+		/* Verify erase */
+		if(!(FMC_CheckAllOne(DataFlashBaseAdress, 1 * FMC_FLASH_PAGE_SIZE) == READ_ALLONE_YES)){/* Check all one on one page*/
+			printf("Memory erase failed! Cannot write.\n");
+		}else{
 
-			memcpy(&temp, &analog_channels[i].biasResistor, 4);/* Since we're storing floats we must use memcpy instead of casting to int */
-			FMC_Write(DataFlashBaseAdress + (i * PD_ANALOG_CHANNEL_OFFSET) +  PD_BIAS_RESISTOR_OFFSET, temp);
+			/* Write */
+			uint8_t i;
+			uint32_t temp;
+			for(i = 0; i < EADC_TOTAL_CHANNELS; i++){
 
-			memcpy(&temp, &analog_channels[i].NTCRZero, 4);
-			FMC_Write(DataFlashBaseAdress + (i * PD_ANALOG_CHANNEL_OFFSET) +  PD_NTC_R_ZERO_OFFSET, temp);
+				FMC_Write(DataFlashBaseAdress + (i * PD_ANALOG_CHANNEL_OFFSET) +  PD_ENABLE_OFFSET, (uint32_t)analog_channels[i].isEnabled);
+				FMC_Write(DataFlashBaseAdress + (i * PD_ANALOG_CHANNEL_OFFSET) +  PD_SENSOR_TYPE_OFFSET, (uint32_t)analog_channels[i].sensorType);
+				FMC_Write(DataFlashBaseAdress + (i * PD_ANALOG_CHANNEL_OFFSET) +  PD_FIELD_UNIT_OFFSET, (uint32_t)analog_channels[i].fieldUnit);
+				FMC_Write(DataFlashBaseAdress + (i * PD_ANALOG_CHANNEL_OFFSET) +  PD_PROCESS_UNIT_OFFSET, (uint32_t)analog_channels[i].processUnit);
 
-			memcpy(&temp, &analog_channels[i].NTCBeta, 4);
-			FMC_Write(DataFlashBaseAdress + (i * PD_ANALOG_CHANNEL_OFFSET) +  PD_NTC_BETA_OFFSET, temp);
+				memcpy(&temp, &analog_channels[i].biasResistor, 4);/* Since we're storing floats we must use memcpy instead of casting to int */
+				FMC_Write(DataFlashBaseAdress + (i * PD_ANALOG_CHANNEL_OFFSET) +  PD_BIAS_RESISTOR_OFFSET, temp);
 
-			memcpy(&temp, &analog_channels[i].voltageGain, 4);
-			FMC_Write(DataFlashBaseAdress + (i * PD_ANALOG_CHANNEL_OFFSET) +  PD_VOLTAGE_GAIN_OFFSET, temp);
+				memcpy(&temp, &analog_channels[i].NTCRZero, 4);
+				FMC_Write(DataFlashBaseAdress + (i * PD_ANALOG_CHANNEL_OFFSET) +  PD_NTC_R_ZERO_OFFSET, temp);
 
-			memcpy(&temp, &analog_channels[i].sensorGain, 4);
-			FMC_Write(DataFlashBaseAdress + (i * PD_ANALOG_CHANNEL_OFFSET) +  PD_SENSOR_GAIN_OFFSET, temp);
+				memcpy(&temp, &analog_channels[i].NTCBeta, 4);
+				FMC_Write(DataFlashBaseAdress + (i * PD_ANALOG_CHANNEL_OFFSET) +  PD_NTC_BETA_OFFSET, temp);
+
+				memcpy(&temp, &analog_channels[i].voltageGain, 4);
+				FMC_Write(DataFlashBaseAdress + (i * PD_ANALOG_CHANNEL_OFFSET) +  PD_VOLTAGE_GAIN_OFFSET, temp);
+
+				memcpy(&temp, &analog_channels[i].sensorGain, 4);
+				FMC_Write(DataFlashBaseAdress + (i * PD_ANALOG_CHANNEL_OFFSET) +  PD_SENSOR_GAIN_OFFSET, temp);
+
+			}
+
+			FMC_Write(DataFlashBaseAdress + PD_CAN_SPEED_OFFSET, g_CANSpeed);
+			FMC_Write(DataFlashBaseAdress + PD_CAN_NODE_ID_OFFSET, (uint32_t)g_CANNodeID);
+
+
+			//while ((FMC->MPSTS & FMC_MPSTS_MPBUSY_Msk)) {}
+
+			uint32_t CRC32 = PD_ComputeConfigChecksum(DataFlashBaseAdress, CHECKSUM_OFFSET);
+
+			printf("Config. CRC32: %X\n", CRC32);
+
+			FMC_Write(DataFlashBaseAdress + CHECKSUM_OFFSET, CRC32);
+
+			Error_Clear(ERROR_CORRUPTED_CONFIG);
 
 		}
 
-		FMC_Write(DataFlashBaseAdress + PD_CAN_SPEED_OFFSET, g_CANSpeed);
-		FMC_Write(DataFlashBaseAdress + PD_CAN_NODE_ID_OFFSET, (uint32_t)g_CANNodeID);
-
-
-		//while ((FMC->MPSTS & FMC_MPSTS_MPBUSY_Msk)) {}
-
-		uint32_t CRC32 = PD_ComputeConfigChecksum(DataFlashBaseAdress, CHECKSUM_OFFSET);
-
-		printf("Config. CRC32: %X\n", CRC32);
-
-		FMC_Write(DataFlashBaseAdress + CHECKSUM_OFFSET, CRC32);
-
-
-
-		//uint32_t *ptr = (uint32_t *)(DataFlashBaseAdress);
-
-		//printf("Start of config data\n");
-		//printf("%X, %X, %X, %X\n", ptr[0],  ptr[1],  ptr[2],  ptr[3]);
-
-		//printf("%X, %X, %X, %X\n", ptr[4],  ptr[5],  ptr[6],  ptr[7]);
-
-		FMC_Close();
-		SYS_LockReg();
-
-		Error_Clear(ERROR_CORRUPTED_CONFIG);
-
+	}else{
+		printf("No Data Flash Allocated!!\n");
 	}
 
-
+	FMC_Close();
+	SYS_LockReg();
 }
 
 uint32_t PD_ComputeConfigChecksum(uint32_t start, uint32_t len){
