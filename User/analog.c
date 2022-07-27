@@ -8,6 +8,7 @@
 #include <math.h>
 #include "analog.h"
 #include "vcom_serial.h"
+#include "errors.h"
 
 /*---------------------------------------------------------------------------------------------------------*/
 /* Global variables                                                                                        */
@@ -271,10 +272,14 @@ void Analog_ConvertToProcessValues(void){
 				if(analog_channels[i].fieldUnit == analog_channels[i].processUnit){ /* the units have to match because */
 					analog_channels[i].processValue = analog_channels[i].fieldValue_filtered; /* the process value is just copied to the field value */
 				}else{/* Else */
-					VCOM_PushString("Unit mismatch on channel "); /* Print error message */
-					char str[SHORT_STRING_LENGTH];
-					sprintf(str, "%u\n\r", i); /* Print error message */
-					VCOM_PushString(str);
+					Error_Set(ERROR_INVALID_CONFIG);
+					static bool sent = false;
+					if(!sent){
+						printf("Unit mismatch on channel %u\n+", i); /* Print error message */
+						sent = true;
+					}
+
+
 				}
 				break;
 

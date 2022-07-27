@@ -45,7 +45,7 @@
 /* Type definitions           				                                                               */
 /*---------------------------------------------------------------------------------------------------------*/
 
-typedef enum {ANALOG_SENSOR_NONE, ANALOG_SENSOR_NTC, ANALOG_SENSOR_PYRANOMETER, ANALOG_SENSOR_THERMOCOUPLE} analog_sensor_t;
+typedef enum {ANALOG_SENSOR_NONE = 0, ANALOG_SENSOR_NTC = 1, ANALOG_SENSOR_PYRANOMETER = 2, ANALOG_SENSOR_THERMOCOUPLE = 3} analog_sensor_t;
 
 typedef struct analog_channel{ /* Process values or state variables */
 

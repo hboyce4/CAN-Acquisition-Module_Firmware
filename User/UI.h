@@ -21,6 +21,8 @@
 #define UI_MENU_NB_ROWS 4
 #define UI_MENU_NB_COLUMNS 2
 
+#define UI_FLOAT_ADD_INC 1
+#define UI_FLOAT_MULT_INC 0.05
 
 #define COLOR_DEFAULT "\x1B[97m\x1B[40m" /* white text, black background \x1B[40m */
 #define COLOR_SELECTED "\x1B[30m\x1B[105m" /* black text, bright magenta background*/
@@ -50,10 +52,12 @@ typedef enum {PARAM_PAGE_SYS = 0, PARAM_PAGE_CAN = 1, PARAM_PAGE_ANALOG = 2, PAR
 /* Functions declaration                                                                              */
 /*---------------------------------------------------------------------------------------------------------*/
 
-void UI_draw(int8_t, int8_t);
+void UI_draw(void);
 
 
 void UI_draw_title(void);
+
+void UI_draw_page_select(void);
 
 void UI_draw_param_page_sys(void);
 void UI_draw_param_page_CAN(void);
@@ -69,13 +73,15 @@ void UI_draw_info_page_noise(void);
 
 void UI_draw_line_separator();
 
-
 void UI_read_user_input(void);
 void UI_increment_value(void);
 void UI_decrement_value(void);
 
+void UI_set_num_rows(uint8_t);
+
 void UI_get_unit_string(physical_unit_t, char*);
 void UI_get_I2C_sensor_string(I2C_sensor_t, char*);
+void UI_get_analog_sensor_string(analog_sensor_t, char*);
 
 //void UI_serialize_code(uint32_t*, uint8_t, bool);
 //uint32_t UI_get_faults_code(void);

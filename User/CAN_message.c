@@ -19,6 +19,7 @@
 #include "CAN_message.h"
 #include "I2C_sensors.h"
 #include "analog.h"
+#include "errors.h"
 
 /*---------------------------------------------------------------------------------------------------------*/
 /* Global variables                                                                                        */
@@ -82,6 +83,11 @@ void CAN_Service(void){
 		for(i = 0; i < EADC_TOTAL_CHANNELS; i++){/* Messages 4 to 15 */
 			CAN_BuildAndSendMessage_32(i + 4, 0x00001080 + (0x100*i) + g_CANNodeID, &analog_channels[i].fieldValue, &analog_channels[i].processValue);
 		}
+		uint32_t err_l, err_h;
+		err_l = Error_GetCode();
+		err_h = 0;
+		CAN_BuildAndSendMessage_32(16, 0x00002080 + g_CANNodeID, &err_l, &err_h);
+
 
 		printf("CAN SYNC received.\n");
 	}

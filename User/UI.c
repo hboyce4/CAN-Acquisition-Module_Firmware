@@ -13,8 +13,9 @@
 #include "interrupt.h"
 #include "analog.h"
 #include "user_sys.h"
-
+#include "CAN_message.h"
 #include "persistent_data.h"
+#include "errors.h"
 
 /*---------------------------------------------------------------------------------------------------------*/
 /* Global variables                                                                                        */
@@ -23,17 +24,10 @@
 info_page_state_t gInfoPage = 0; /* Track which page we're on*/
 param_page_state_t gParamPage = 0; /* Track which page we're on*/
 
-int8_t g_i8RowSel, g_i8ColumnSel;
+int8_t g_i8AnalogChannelSel = 0;
 
-/* Dummy placeholder variables for future expansion */
-int8_t gi8Parameter0_0 = 0;
-int8_t gi8Parameter0_1 = 0;
-int8_t gi8Parameter1_0 = 0;
-int8_t gi8Parameter1_1 = 0;
-int8_t gi8Parameter2_0 = 0;
-int8_t gi8Parameter2_1 = 0;
-int8_t gi8Parameter3_1 = 0;
 
+int8_t g_i8RowSel, g_i8ColumnSel, g_i8NumRows, g_i8AnalogChannelSel;
 
 /*---------------------------------------------------------------------------------------------------------*/
 /* Function definitions                                                                                    */
@@ -47,6 +41,8 @@ void UI_draw(void){/* 60-ish characters width*/
 
     /* Current state display */
 	UI_draw_title();
+
+	UI_draw_page_select();
 
 	switch(gParamPage){ // Depending on which one is selected
 
@@ -141,29 +137,29 @@ void UI_read_user_input(void){
 
 			if(user_char == 'A'){/* Up */
 				(g_i8RowSel)--;/*Move the selection up*/
-				if(g_i8RowSel<0){/* If the selection goes past the highest row*/
-					g_i8RowSel = 0;/* Stay at the highest row, don't wrap around*/
+				if(g_i8RowSel<0){/* If the selection goes past the lowest row*/
+					g_i8RowSel = 0;/* Stay at the lowest row, don't wrap around*/
 				}
 				state = 0;/* Finally, reset the state machine*/
 
 			}else if (user_char == 'B'){ /* Down*/
 				(g_i8RowSel)++;/*Move the selection down*/
-				if(g_i8RowSel >= UI_MENU_NB_ROWS){/* If the selection goes past the lowest row*/
-					g_i8RowSel = (UI_MENU_NB_ROWS-1);/* Stay at the lowest row, don't wrap around*/
+				if(g_i8RowSel >= g_i8NumRows){/* If the selection goes past the highest row*/
+					g_i8RowSel = (g_i8NumRows-1);/* Stay at the highest row, don't wrap around*/
 				}
 				state = 0;/* Finally, reset the state machine*/
 
 			}else if (user_char == 'C'){ /* Right */
 				(g_i8ColumnSel)++;/*Move the selection right*/
-				if(g_i8ColumnSel >= UI_MENU_NB_COLUMNS){/* If the selection goes past the lowest row*/
-					g_i8ColumnSel = (UI_MENU_NB_COLUMNS-1);/* Stay at the lowest row, don't wrap around*/
+				if(g_i8ColumnSel >= UI_MENU_NB_COLUMNS){/* If the selection goes past the highest column*/
+					g_i8ColumnSel = (UI_MENU_NB_COLUMNS-1);/* Stay at the highest column, don't wrap around*/
 				}
 				state = 0;/* Finally, reset the state machine*/
 
 			}else if (user_char == 'D'){ /* Left*/
 				(g_i8ColumnSel)--;/*Move the selection left*/
-				if(g_i8ColumnSel<0){/* If the selection goes past the highest row*/
-					g_i8ColumnSel = 0;/* Stay at the highest row, don't wrap around*/
+				if(g_i8ColumnSel<0){/* If the selection goes past the lowest column*/
+					g_i8ColumnSel = 0;/* Stay at the lowest column, don't wrap around*/
 				}
 				state = 0;/* Finally, reset the state machine*/
 
@@ -174,9 +170,9 @@ void UI_read_user_input(void){
 		}
 
 		if(user_char == '+'){/* If a '+' is received, the selected value is incremented*/
-			UI_increment_value(g_i8RowSel,g_i8ColumnSel);
+			UI_increment_value();
 		}else if (user_char == '-'){/* If a '-' is received, the selected value is decremented*/
-			UI_decrement_value(g_i8RowSel,g_i8ColumnSel);
+			UI_decrement_value();
 		}
 		//printf("\nReceived character '0x%x' \n", user_char); /* for debug */
 
@@ -185,46 +181,111 @@ void UI_read_user_input(void){
 
 void UI_increment_value(void){
 
-	switch(g_i8RowSel){
 
-		case 0:
-			if(g_i8ColumnSel == 0){
-				gi8Parameter0_0++;
-			}else if (g_i8ColumnSel == 1){
-				gi8Parameter0_1++;
+	if(g_i8RowSel == 0){
+
+		if(g_i8ColumnSel == 0){
+			if(gInfoPage < UI_HIGHEST_INFO_PAGE){
+				gInfoPage++;
 			}
-			break;
-
-
-		case 1:
-			if(g_i8ColumnSel == 0){
-				gi8Parameter1_0++;
-			}else if (g_i8ColumnSel == 1){
-				/*inverter_setpoints.V_DC_diff_setpoint += FLOAT_INCREMENT;*/
-				gi8Parameter1_1++;
+		}else if (g_i8ColumnSel == 1){
+			if(gParamPage < UI_HIGHEST_PARAM_PAGE){
+				gParamPage++;
 			}
-			break;
+		}
+	}else{
 
+		switch(gParamPage){
 
-		case 2:
-			if(g_i8ColumnSel == 0){
-				gi8Parameter2_0++;
-			}else if (g_i8ColumnSel == 1){
-				gi8Parameter2_1++;
-			}
-			break;
+			case PARAM_PAGE_SYS:
+				switch(g_i8RowSel){
+					case 1:
+						if(g_i8ColumnSel == 0){
+							PD_SaveConfig();
+						}else if (g_i8ColumnSel == 1){
+							/*inverter_setpoints.V_DC_diff_setpoint += FLOAT_INCREMENT;*/
+							PD_SaveConfig();
+						}
+						break;
 
-
-		case 3:
-
-			if(g_i8ColumnSel == 0){
-				if(gInfoPage < UI_HIGHEST_INFO_PAGE){
-					gInfoPage++;
 				}
-			}else if (g_i8ColumnSel == 1){
-				gi8Parameter3_1++;
-			}
-			break;
+				break;
+
+
+			case PARAM_PAGE_CAN:
+
+				switch(g_i8RowSel){
+					case 1:
+						g_CANSpeed *= 2;
+						break;
+					case 2:
+						g_CANNodeID++;
+						if(g_CANNodeID > CAN_NODE_ID_MAX){
+							g_CANNodeID = CAN_NODE_ID_MAX;
+						}
+				}
+				break;
+
+			case PARAM_PAGE_ANALOG:
+				switch(g_i8RowSel){
+					case 1:
+						if(g_i8ColumnSel == 0){
+							g_i8AnalogChannelSel++;
+							if(g_i8AnalogChannelSel > EADC_LAST_GP_CHANNEL){
+								g_i8AnalogChannelSel = EADC_LAST_GP_CHANNEL;
+							}
+
+						}else if (g_i8ColumnSel == 1){
+							analog_channels[g_i8AnalogChannelSel].sensorType++;
+							if(analog_channels[g_i8AnalogChannelSel].sensorType > ANALOG_SENSOR_THERMOCOUPLE){/* If greater than last type */
+								analog_channels[g_i8AnalogChannelSel].sensorType = ANALOG_SENSOR_THERMOCOUPLE;/* Don't go any further, stay at last type. */
+							}
+						}
+						break;
+					case 2:
+						if(g_i8ColumnSel == 0){
+							analog_channels[g_i8AnalogChannelSel].isEnabled = true;
+						}else if (g_i8ColumnSel == 1){
+							analog_channels[g_i8AnalogChannelSel].fieldUnit++;
+							if(analog_channels[g_i8AnalogChannelSel].fieldUnit > UNIT_PPM){
+								analog_channels[g_i8AnalogChannelSel].fieldUnit = UNIT_PPM;
+							}
+						}
+						break;
+
+					case 3:
+						if(g_i8ColumnSel == 0){
+							analog_channels[g_i8AnalogChannelSel].processUnit++;
+							if(analog_channels[g_i8AnalogChannelSel].processUnit > UNIT_PPM){
+								analog_channels[g_i8AnalogChannelSel].processUnit = UNIT_PPM;
+							}
+						}else if (g_i8ColumnSel == 1){
+							analog_channels[g_i8AnalogChannelSel].biasResistor += UI_FLOAT_ADD_INC;
+						}
+						break;
+
+					case 4:
+						if(g_i8ColumnSel == 0){
+							analog_channels[g_i8AnalogChannelSel].NTCRZero += UI_FLOAT_ADD_INC;
+						}else if (g_i8ColumnSel == 1){
+							analog_channels[g_i8AnalogChannelSel].NTCBeta += UI_FLOAT_ADD_INC;
+						}
+						break;
+
+					case 5:
+						if(g_i8ColumnSel == 0){
+							analog_channels[g_i8AnalogChannelSel].voltageGain *= 1 + UI_FLOAT_MULT_INC;
+						}else if (g_i8ColumnSel == 1){
+							analog_channels[g_i8AnalogChannelSel].sensorGain *= 1 + UI_FLOAT_MULT_INC;
+						}
+						break;
+				}
+				break;
+
+			case PARAM_PAGE_I2C:
+				break;
+
+		}
 
 	}
 
@@ -232,44 +293,108 @@ void UI_increment_value(void){
 
 void UI_decrement_value(void){
 
-	switch(g_i8RowSel){
+	if(g_i8RowSel == 0){
 
-		case 0:
-			if(g_i8ColumnSel == 0){
-				gi8Parameter0_0--;
-			}else if (g_i8ColumnSel == 1){
-				gi8Parameter0_1--;
+		if(g_i8ColumnSel == 0){
+			if(gInfoPage > 0){
+				gInfoPage--;
 			}
-			break;
-		case 1:
-			if(g_i8ColumnSel == 0){
-				/*inverter_setpoints.precharge_threshold = FLOAT_INCREMENT;*/
-				gi8Parameter1_0--;
-			}else if (g_i8ColumnSel == 1){
-				/*inverter_setpoints.V_DC_diff_setpoint -= FLOAT_INCREMENT;*/
-				gi8Parameter1_1--;
+		}else if (g_i8ColumnSel == 1){
+			if(gParamPage > 0){
+				gParamPage--;
 			}
-			break;
+		}
+	}else{
 
-		case 2:
-			if(g_i8ColumnSel == 0){
-				gi8Parameter2_0--;
-			}else if (g_i8ColumnSel == 1){
-				gi8Parameter2_1--;
-			}
-			break;
+		switch(gParamPage){
 
-		case 3:
-			if(g_i8ColumnSel == 0){
-				if(gInfoPage > 0){
-					gInfoPage--;
+			case PARAM_PAGE_SYS:
+				switch(g_i8RowSel){
+					case 1:
+						if(g_i8ColumnSel == 0){
+							PD_SaveConfig();
+						}else if (g_i8ColumnSel == 1){
+							/*inverter_setpoints.V_DC_diff_setpoint += FLOAT_INCREMENT;*/
+							PD_SaveConfig();
+						}
+						break;
+
 				}
-			}else if (g_i8ColumnSel == 1){
-				gi8Parameter3_1--;
-			}
-			break;
+				break;
+
+
+			case PARAM_PAGE_CAN:
+
+				switch(g_i8RowSel){
+					case 1:
+						g_CANSpeed /= 2;
+						break;
+					case 2:
+						if(g_CANNodeID > CAN_NODE_ID_MIN){
+							g_CANNodeID--;
+						}
+				}
+				break;
+
+			case PARAM_PAGE_ANALOG:
+				switch(g_i8RowSel){
+					case 1:
+						if(g_i8ColumnSel == 0){
+							if(g_i8AnalogChannelSel > 0){
+								g_i8AnalogChannelSel--;
+							}
+						}else if (g_i8ColumnSel == 1){
+							if(analog_channels[g_i8AnalogChannelSel].sensorType > 0){/* If greater than last type */
+								analog_channels[g_i8AnalogChannelSel].sensorType--;/* Don't go any further, stay at last type. */
+							}
+						}
+						break;
+					case 2:
+						if(g_i8ColumnSel == 0){
+							analog_channels[g_i8AnalogChannelSel].isEnabled = false;
+						}else if (g_i8ColumnSel == 1){
+							if(analog_channels[g_i8AnalogChannelSel].fieldUnit > 0){
+								analog_channels[g_i8AnalogChannelSel].fieldUnit--;
+							}
+						}
+						break;
+
+					case 3:
+						if(g_i8ColumnSel == 0){
+							if(analog_channels[g_i8AnalogChannelSel].processUnit > 0){
+								analog_channels[g_i8AnalogChannelSel].processUnit--;
+							}
+						}else if (g_i8ColumnSel == 1){
+							analog_channels[g_i8AnalogChannelSel].biasResistor -= UI_FLOAT_ADD_INC;
+						}
+						break;
+
+					case 4:
+						if(g_i8ColumnSel == 0){
+							analog_channels[g_i8AnalogChannelSel].NTCRZero -= UI_FLOAT_ADD_INC;
+						}else if (g_i8ColumnSel == 1){
+							analog_channels[g_i8AnalogChannelSel].NTCBeta -= UI_FLOAT_ADD_INC;
+						}
+						break;
+
+					case 5:
+						if(g_i8ColumnSel == 0){
+							analog_channels[g_i8AnalogChannelSel].voltageGain *= 1 - UI_FLOAT_MULT_INC;
+						}else if (g_i8ColumnSel == 1){
+							analog_channels[g_i8AnalogChannelSel].sensorGain *= 1 - UI_FLOAT_MULT_INC;
+						}
+						break;
+				}
+				break;
+
+			case PARAM_PAGE_I2C:
+				break;
+
+		}
 
 	}
+
+
 }
 
 void UI_draw_title(void){
@@ -277,89 +402,18 @@ void UI_draw_title(void){
 
 	/* \x1B[3J is an escape sequence that clears the screen */
 	VCOM_PushString("\x1B[0J************* CAN Acquisition Module *************\n\r");
+	VCOM_PushString("Use arrows to select, + and - to edit.\n\r");
 
 }
 
-void UI_draw_param_page_sys(void){
-
-}
-void UI_draw_param_page_CAN(void){
-
-}
-void UI_draw_param_page_analog(void){
-
+void UI_draw_page_select(void){
 
 	/*********************** First Line ***********************************/
 	char line_str[LINE_WIDTH];
-	char color_left_str[SHORT_STRING_LENGTH];
-	char color_right_str[SHORT_STRING_LENGTH];
-
-	/* Column 0 */
-	if(g_i8RowSel == 0 && g_i8ColumnSel == 0){
-		strcpy(color_left_str, COLOR_SELECTED);
-	}else{
-		strcpy(color_left_str, COLOR_NOT_SELECTED);
-	}
-
-	/* Column 1 */
-	if(g_i8RowSel == 0 && g_i8ColumnSel == 1){
-		strcpy(color_right_str, COLOR_SELECTED);
-	}else{
-		strcpy(color_right_str, COLOR_NOT_SELECTED);
-	}
-
-	sprintf(line_str,"Parameter 1: %s%i%s %sParameter 2: %s%i V%s\n\r",color_left_str,gi8Parameter0_0,COLOR_DEFAULT,
-			CURSOR_RIGHT_COLUMN, color_right_str,gi8Parameter0_1,COLOR_DEFAULT);
-
-	VCOM_PushString((char*) line_str);
-
-	/*********************** Second Line ***********************************/
-
-	/* Column 0 */
-	if(g_i8RowSel == 1 && g_i8ColumnSel == 0){
-		strcpy(color_left_str, COLOR_SELECTED);
-	}else{
-		strcpy(color_left_str, COLOR_NOT_SELECTED);
-	}
-
-	/* Column 1 */
-	if(g_i8RowSel == 1 && g_i8ColumnSel == 1){
-		strcpy(color_right_str, COLOR_SELECTED);
-	}else{
-		strcpy(color_right_str, COLOR_NOT_SELECTED);
-	}
-
-	sprintf(line_str,"Parameter 3: %s%i%s %sParameter 4: %s%i%s\n\r",color_left_str,gi8Parameter1_0,COLOR_DEFAULT,
-	CURSOR_RIGHT_COLUMN, color_right_str,gi8Parameter1_1,COLOR_DEFAULT);
-
-	VCOM_PushString((char*) line_str);
-
-	/*********************** Third Line ***********************************/
-
-	/* Column 0 */
-	if(g_i8RowSel == 2 && g_i8ColumnSel == 0){
-		strcpy(color_left_str, COLOR_SELECTED);
-	}else{
-		strcpy(color_left_str, COLOR_NOT_SELECTED);
-	}
-
-	/* Column 1 */
-	if(g_i8RowSel == 2 && g_i8ColumnSel == 1){
-		strcpy(color_right_str, COLOR_SELECTED);
-	}else{
-		strcpy(color_right_str, COLOR_NOT_SELECTED);
-	}
-
-	sprintf(line_str,"Parameter 5: %s%d%s %sParameter 6: %s%d%s\n\r",color_left_str,gi8Parameter2_0,COLOR_DEFAULT,
-			CURSOR_RIGHT_COLUMN, color_right_str,gi8Parameter2_1,COLOR_DEFAULT);
-
-	VCOM_PushString((char*) line_str);
-
-	/*********************** Fourth Line ***********************************/
 
 	sprintf(line_str,"Info page: ");
 	/* Column 0 */
-	if(g_i8RowSel == 3 && g_i8ColumnSel == 0){
+	if(g_i8RowSel == 0 && g_i8ColumnSel == 0){
 		strcat(line_str, COLOR_SELECTED);
 	}else{
 		strcat(line_str, COLOR_NOT_SELECTED);
@@ -399,26 +453,231 @@ void UI_draw_param_page_analog(void){
 
 	strcat(line_str, COLOR_DEFAULT);
 	strcat(line_str, CURSOR_RIGHT_COLUMN);
-	strcat(line_str, "Parameter 7: ");
+	strcat(line_str, "Param. page: ");
 
 	/* Column 1 */
-	if(g_i8RowSel == 3 && g_i8ColumnSel == 1){
+	if(g_i8RowSel == 0 && g_i8ColumnSel == 1){
 		strcat(line_str, COLOR_SELECTED);
 	}else{
 		strcat(line_str, COLOR_NOT_SELECTED);
 	}
 
-	char right_param_value_str[SHORT_STRING_LENGTH];
-	sprintf(right_param_value_str, "%d", gi8Parameter3_1);
+	switch(gParamPage){
 
-	strcat(line_str, right_param_value_str);
+		case PARAM_PAGE_SYS:
+			strcat(line_str, "System");
+			break;
+
+		case PARAM_PAGE_CAN:
+			strcat(line_str, "CANbus");
+			break;
+
+		case PARAM_PAGE_ANALOG:
+			strcat(line_str, "Analog Channels");
+			break;
+
+		case PARAM_PAGE_I2C:
+			strcat(line_str, "I2C Environmental Sensor");
+			break;
+
+	}
+
 	strcat(line_str, COLOR_DEFAULT);
 	strcat(line_str, " \n\r");
 
 	VCOM_PushString((char*) line_str);
 
 }
+
+
+void UI_draw_param_page_sys(void){
+
+
+	/*********************** Second Line ***********************************/
+	char line_str[LINE_WIDTH];
+	char color_str[SHORT_STRING_LENGTH];
+
+	/* Column 0 */
+	if(g_i8RowSel == 1){
+		strcpy(color_str, COLOR_SELECTED);
+	}else{
+		strcpy(color_str, COLOR_NOT_SELECTED);
+	}
+
+	sprintf(line_str,"Config save: %sPress + or - to save%s\n\r",color_str,COLOR_DEFAULT);
+
+	VCOM_PushString((char*) line_str);
+
+	UI_set_num_rows(2);/* 2 rows total including page select */
+
+}
+
+
+void UI_draw_param_page_CAN(void){
+
+
+	/*********************** Second Line ***********************************/
+
+	char line_str[LINE_WIDTH];
+	char color_str[SHORT_STRING_LENGTH];
+
+
+	/* Column 0 */
+	if(g_i8RowSel == 1){
+		strcpy(color_str, COLOR_SELECTED);
+	}else{
+		strcpy(color_str, COLOR_NOT_SELECTED);
+	}
+
+	sprintf(line_str,"CAN Speed: %s%i bps%s\n\r",color_str, g_CANSpeed,COLOR_DEFAULT);
+
+	VCOM_PushString((char*) line_str);
+
+	/*********************** Third Line ***********************************/
+	/* Column 1 */
+	if(g_i8RowSel == 2){
+		strcpy(color_str, COLOR_SELECTED);
+	}else{
+		strcpy(color_str, COLOR_NOT_SELECTED);
+	}
+
+	sprintf(line_str,"CAN Node ID: %s%i%s\n\r",color_str, g_CANNodeID,COLOR_DEFAULT);
+
+	VCOM_PushString((char*) line_str);
+
+	UI_set_num_rows(3);/* 3 rows total including page select */
+
+}
+void UI_draw_param_page_analog(void){
+
+
+	/*********************** Second Line ***********************************/
+	char line_str[LINE_WIDTH];
+	char color_left_str[SHORT_STRING_LENGTH];
+	char color_right_str[SHORT_STRING_LENGTH];
+	char temp_l_str[SHORT_STRING_LENGTH];
+	char temp_r_str[SHORT_STRING_LENGTH];
+
+	/* Column 0 */
+	if(g_i8RowSel == 1 && g_i8ColumnSel == 0){
+		strcpy(color_left_str, COLOR_SELECTED);
+	}else{
+		strcpy(color_left_str, COLOR_NOT_SELECTED);
+	}
+
+	/* Column 1 */
+	if(g_i8RowSel == 1 && g_i8ColumnSel == 1){
+		strcpy(color_right_str, COLOR_SELECTED);
+	}else{
+		strcpy(color_right_str, COLOR_NOT_SELECTED);
+	}
+
+	UI_get_analog_sensor_string(analog_channels[g_i8AnalogChannelSel].sensorType, temp_l_str);
+
+	sprintf(line_str,"Analog Channel: %s%i%s %sSensor type: %s%s%s\n\r",color_left_str,g_i8AnalogChannelSel,COLOR_DEFAULT,
+			CURSOR_RIGHT_COLUMN, color_right_str,temp_l_str,COLOR_DEFAULT);
+
+	VCOM_PushString((char*) line_str);
+
+	/*********************** Third Line ***********************************/
+
+	/* Column 0 */
+	if(g_i8RowSel == 2 && g_i8ColumnSel == 0){
+		strcpy(color_left_str, COLOR_SELECTED);
+	}else{
+		strcpy(color_left_str, COLOR_NOT_SELECTED);
+	}
+
+	/* Column 1 */
+	if(g_i8RowSel == 2 && g_i8ColumnSel == 1){
+		strcpy(color_right_str, COLOR_SELECTED);
+	}else{
+		strcpy(color_right_str, COLOR_NOT_SELECTED);
+	}
+
+	if(analog_channels[g_i8AnalogChannelSel].isEnabled){
+		strcpy(temp_l_str, "Yes");
+	}else{
+		strcpy(temp_l_str, "No");
+	}
+
+	UI_get_unit_string(analog_channels[g_i8AnalogChannelSel].fieldUnit,temp_r_str);
+
+	sprintf(line_str,"Enabled: %s%s%s %sField unit: %s%s%s\n\r",color_left_str,temp_l_str,COLOR_DEFAULT,
+	CURSOR_RIGHT_COLUMN, color_right_str, temp_r_str,COLOR_DEFAULT);
+
+	VCOM_PushString((char*) line_str);
+
+	/*********************** Fourth Line ***********************************/
+
+	/* Column 0 */
+	if(g_i8RowSel == 3 && g_i8ColumnSel == 0){
+		strcpy(color_left_str, COLOR_SELECTED);
+	}else{
+		strcpy(color_left_str, COLOR_NOT_SELECTED);
+	}
+
+	/* Column 1 */
+	if(g_i8RowSel == 3 && g_i8ColumnSel == 1){
+		strcpy(color_right_str, COLOR_SELECTED);
+	}else{
+		strcpy(color_right_str, COLOR_NOT_SELECTED);
+	}
+
+	UI_get_unit_string(analog_channels[g_i8AnalogChannelSel].processUnit,temp_l_str);
+
+	sprintf(line_str,"Process unit: %s%s%s %sBias resistor: %s%f Ohm%s\n\r",color_left_str,temp_l_str,COLOR_DEFAULT,
+			CURSOR_RIGHT_COLUMN, color_right_str, analog_channels[g_i8AnalogChannelSel].biasResistor,COLOR_DEFAULT);
+
+	VCOM_PushString((char*) line_str);
+
+	/*********************** Fifth Line ***********************************/
+
+	/* Column 0 */
+	if(g_i8RowSel == 4 && g_i8ColumnSel == 0){
+		strcpy(color_left_str, COLOR_SELECTED);
+	}else{
+		strcpy(color_left_str, COLOR_NOT_SELECTED);
+	}
+
+	/* Column 1 */
+	if(g_i8RowSel == 4 && g_i8ColumnSel == 1){
+		strcpy(color_right_str, COLOR_SELECTED);
+	}else{
+		strcpy(color_right_str, COLOR_NOT_SELECTED);
+	}
+
+	sprintf(line_str,"R @ 25 degC: %s%f Ohm%s %sBeta coef.: %s%f K%s\n\r",color_left_str, analog_channels[g_i8AnalogChannelSel].NTCRZero, COLOR_DEFAULT,
+			CURSOR_RIGHT_COLUMN, color_right_str, analog_channels[g_i8AnalogChannelSel].NTCBeta,COLOR_DEFAULT);
+
+	VCOM_PushString((char*) line_str);
+
+	/*********************** Sixth Line ***********************************/
+	/* Column 0 */
+	if(g_i8RowSel == 5 && g_i8ColumnSel == 0){
+		strcpy(color_left_str, COLOR_SELECTED);
+	}else{
+		strcpy(color_left_str, COLOR_NOT_SELECTED);
+	}
+
+	/* Column 1 */
+	if(g_i8RowSel == 5 && g_i8ColumnSel == 1){
+		strcpy(color_right_str, COLOR_SELECTED);
+	}else{
+		strcpy(color_right_str, COLOR_NOT_SELECTED);
+	}
+
+	sprintf(line_str,"Voltage gain: %s%f%s %sSensor gain: %s%f%s\n\r",color_left_str, analog_channels[g_i8AnalogChannelSel].voltageGain, COLOR_DEFAULT,
+			CURSOR_RIGHT_COLUMN, color_right_str, analog_channels[g_i8AnalogChannelSel].sensorGain,COLOR_DEFAULT);
+
+	VCOM_PushString((char*) line_str);
+
+	UI_set_num_rows(6);/* 6 rows total including page select */
+
+}
 void UI_draw_param_page_I2C(void){
+
+	UI_set_num_rows(1);/* 1 rows total including page select */
 
 }
 
@@ -456,6 +715,10 @@ void UI_draw_info_page_sys(void){
 
 	/******************************** Unique ID *********************************************************/
 	sprintf(line_str, "Unique ID: %08X %08X %08X\n\r", g_u32UID[2], g_u32UID[1], g_u32UID[0]);
+	VCOM_PushString((char*) line_str);
+
+	/******************************** Error code *********************************************************/
+	sprintf(line_str, "Error code: %08X (zero is no error)\n\r", Error_GetCode());
 	VCOM_PushString((char*) line_str);
 
 }
@@ -721,5 +984,39 @@ void UI_get_I2C_sensor_string(I2C_sensor_t type, char* string){
 
 }
 
+void UI_get_analog_sensor_string(analog_sensor_t type, char* string){
 
+	switch(type){
 
+		case ANALOG_SENSOR_NONE:
+			strcpy(string, "None");
+			break;
+
+		case ANALOG_SENSOR_NTC:
+			strcpy(string, "NTC Thermistor");
+			break;
+
+		case ANALOG_SENSOR_PYRANOMETER:
+			strcpy(string, "Pyranometer");
+			break;
+
+		case ANALOG_SENSOR_THERMOCOUPLE:
+			strcpy(string, "Thermocouple");
+			break;
+
+		default: /*If the unit is not known */
+			strcpy(string, "Unknown");
+			break;
+
+	}
+
+}
+
+void UI_set_num_rows(uint8_t nb_rows){
+
+	g_i8NumRows = nb_rows;
+	if(g_i8RowSel >= nb_rows){
+		g_i8RowSel = nb_rows - 1;
+	}
+
+}

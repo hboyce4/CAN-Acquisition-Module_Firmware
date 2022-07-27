@@ -49,7 +49,7 @@
 #define USBD_REMOTE_WAKEUP              0
 #define USBD_MAX_POWER                  50  /* The unit is in 2mA. ex: 50 * 2mA = 100mA */
 
-#define RXBUFSIZE           2048 /* RX buffer size. (Bytes received by the USB driver and transmitted to the host) Max 64k. */
+#define RXBUFSIZE           4096 /* RX buffer size. (Bytes received by the USB driver and transmitted to the host) Max 64k. */
 #define TXBUFSIZE           32 /* TX buffer size. (Bytes received from the host and transmitted by the USB driver) Max 64k. */
 
 /* Define the timeout of PC terminal */

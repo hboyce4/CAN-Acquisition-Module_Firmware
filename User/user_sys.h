@@ -14,7 +14,16 @@
 
 #define DEBUG_UART_SPEED 115200
 
-typedef enum {UNIT_NONE, UNIT_OHM, UNIT_CELSIUS, UNIT_KELVIN, UNIT_VOLT, UNIT_MILLIVOLT, UNIT_CNT, UNIT_PERCENT_RH, UNIT_PPM} physical_unit_t;
+typedef enum {UNIT_NONE = 0,
+				UNIT_OHM = 1,
+				UNIT_CELSIUS = 2,
+				UNIT_KELVIN = 3,
+				UNIT_VOLT = 4,
+				UNIT_MILLIVOLT = 5,
+				UNIT_CNT = 6,
+				UNIT_PERCENT_RH = 7,
+				UNIT_PPM = 8
+} physical_unit_t;
 
 
 void delay_ms(uint32_t);

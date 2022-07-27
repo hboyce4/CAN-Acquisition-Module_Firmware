@@ -86,6 +86,10 @@
  * TPDO13 to TPDO15
  * 		// Incremented from TPDO12 (CH9 at ID 0x00001980 to CH11 at ID 0x00001B80)
  *
+ * TPDO16					// Contains data from the eighth Analog channel (CH8)
+ * 		Extended ID:		0x00002080 + NodeID
+ *		Data bytes [0-3]:	Module error code
+ *		Data bytes [4-7]:	Zeroes
  *
  * So far, no mechanism exists to send or automatically configure the units.
  * They will have to be matched manually on the host PC and the acquisition modules.
@@ -95,9 +99,15 @@
  * */
 
 #define CAN_SPEED_DEFAULT 125000
-#define CAN_NODE_ID_DEFAULT 1 /* 1 to 127 */
+#define CAN_NODE_ID_DEFAULT 1
+
+#define CAN_NODE_ID_MIN 2 /* Define minimum node ID as 2, so that 1 is usually free.
+ 	 	 	 	 	 	 	 That way if a node looses calibration and goes to node ID 1, there's no conflict. */
+#define CAN_NODE_ID_MAX 127 /* Largest permitted by standard */
 
 
+extern uint32_t g_CANSpeed;
+extern uint8_t g_CANNodeID;
 
 void CAN_MsgInterrupt(uint32_t u32IIDR);
 void CAN_Init(void);

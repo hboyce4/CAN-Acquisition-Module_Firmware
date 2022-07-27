@@ -9,8 +9,9 @@ C_SRCS += \
 ../User/SPI_LCD.c \
 ../User/UI.c \
 ../User/analog.c \
-../User/analog_channels.c \
+../User/analog_channels_default.c \
 ../User/descriptors.c \
+../User/errors.c \
 ../User/fonts.c \
 ../User/initialization.c \
 ../User/interrupt.c \
@@ -25,8 +26,9 @@ OBJS += \
 ./User/SPI_LCD.o \
 ./User/UI.o \
 ./User/analog.o \
-./User/analog_channels.o \
+./User/analog_channels_default.o \
 ./User/descriptors.o \
+./User/errors.o \
 ./User/fonts.o \
 ./User/initialization.o \
 ./User/interrupt.o \
@@ -41,8 +43,9 @@ C_DEPS += \
 ./User/SPI_LCD.d \
 ./User/UI.d \
 ./User/analog.d \
-./User/analog_channels.d \
+./User/analog_channels_default.d \
 ./User/descriptors.d \
+./User/errors.d \
 ./User/fonts.d \
 ./User/initialization.d \
 ./User/interrupt.d \

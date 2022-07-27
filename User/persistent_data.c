@@ -56,13 +56,14 @@ void PD_Init(void){
     	printf("Allocate some using Nuvoton ICP Prog. Tool\n");
     }else{
 
-    	uint32_t checksum = PD_ComputeChecksum(DataFlashBaseAdress, CHECKSUM_OFFSET);/* Compute the config's checksum */
+    	uint32_t checksum;
+    	checksum = PD_ComputeConfigChecksum(DataFlashBaseAdress, CHECKSUM_OFFSET);/* Compute the config's checksum */
 
     	if(checksum == inpw(DataFlashBaseAdress + CHECKSUM_OFFSET)){/* If the computed checksum is equal to the checksum stored in memory */
     		printf("Config CRC32 OK\n");
     		printf("Loading config from memory...\n");
-    		// PD_LoadConfig();
-    		Error_Clear(ERROR_INVALID_CONFIG);
+    		PD_LoadConfig();
+    		Error_Clear(ERROR_CORRUPTED_CONFIG);
 
     	}else{
 
@@ -118,15 +119,13 @@ void PD_SaveConfig(void){
 
 		}
 
-		extern uint32_t g_CANSpeed;
 		FMC_Write(DataFlashBaseAdress + PD_CAN_SPEED_OFFSET, g_CANSpeed);
-		extern uint8_t g_CANNodeID;
 		FMC_Write(DataFlashBaseAdress + PD_CAN_NODE_ID_OFFSET, (uint32_t)g_CANNodeID);
 
 
 		//while ((FMC->MPSTS & FMC_MPSTS_MPBUSY_Msk)) {}
 
-		uint32_t CRC32 = PD_ComputeChecksum(DataFlashBaseAdress, CHECKSUM_OFFSET);
+		uint32_t CRC32 = PD_ComputeConfigChecksum(DataFlashBaseAdress, CHECKSUM_OFFSET);
 
 		printf("Config. CRC32: %X\n", CRC32);
 
@@ -144,14 +143,14 @@ void PD_SaveConfig(void){
 		FMC_Close();
 		SYS_LockReg();
 
-		Error_Clear(ERROR_INVALID_CONFIG);
+		Error_Clear(ERROR_CORRUPTED_CONFIG);
 
 	}
 
 
 }
 
-uint32_t PD_ComputeChecksum(uint32_t start, uint32_t len){
+uint32_t PD_ComputeConfigChecksum(uint32_t start, uint32_t len){
 
 	//uint32_t CRC32;
 	//CRC32 = FMC_GetChkSum(DataFlashBaseAdress, CHECKSUM_OFFSET);/* Getting the checksum with the FMC is annoying because it only does 4K chunks */
@@ -200,9 +199,7 @@ void PD_LoadConfig(void){
 
 	}
 
-	extern uint32_t g_CANSpeed;
 	g_CANSpeed = inpw(DataFlashBaseAdress + PD_CAN_SPEED_OFFSET);
-	extern uint8_t g_CANNodeID;
 	g_CANNodeID = (uint8_t)inpw(DataFlashBaseAdress + PD_CAN_NODE_ID_OFFSET);
 
 

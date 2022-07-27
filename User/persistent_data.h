@@ -22,6 +22,6 @@ void PD_Init(void);
 void PD_SaveConfig(void);
 void PD_LoadConfig(void);
 
-uint32_t PD_ComputeConfigChecksum(void);
+uint32_t PD_ComputeConfigChecksum(uint32_t start, uint32_t len);
 
 #endif /* PERSISTENT_DATA_H_ */

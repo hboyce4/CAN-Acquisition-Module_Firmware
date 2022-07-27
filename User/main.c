@@ -30,7 +30,6 @@ int main (void)
     printf("CAN Acquisition Module - Debug port\n");
 
     PD_Init();
-    //PD_SaveConfig();
 
 
     ADC_Init();
@@ -76,7 +75,7 @@ int main (void)
         	gbDrawNewUIFrame = false;
 
         	if(gbTerminalActive){
-        		UI_draw(i8RowSel, i8ColumnSel);
+        		UI_draw();
 
         	}
 
