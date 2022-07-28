@@ -79,7 +79,6 @@ void UI_decrement_value(void);
 
 void UI_set_num_rows(uint8_t);
 
-void UI_get_unit_string(physical_unit_t, char*);
 void UI_get_I2C_sensor_string(I2C_sensor_t, char*);
 void UI_get_analog_sensor_string(analog_sensor_t, char*);
 

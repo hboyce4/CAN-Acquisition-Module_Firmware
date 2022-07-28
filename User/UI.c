@@ -601,7 +601,7 @@ void UI_draw_param_page_analog(void){
 		strcpy(temp_l_str, "No");
 	}
 
-	UI_get_unit_string(analog_channels[g_i8AnalogChannelSel].fieldUnit,temp_r_str);
+	sys_get_unit_string(analog_channels[g_i8AnalogChannelSel].fieldUnit,temp_r_str);
 
 	sprintf(line_str,"Enabled: %s%s%s %sField unit: %s%s%s\n\r",color_left_str,temp_l_str,COLOR_DEFAULT,
 	CURSOR_RIGHT_COLUMN, color_right_str, temp_r_str,COLOR_DEFAULT);
@@ -624,7 +624,7 @@ void UI_draw_param_page_analog(void){
 		strcpy(color_right_str, COLOR_NOT_SELECTED);
 	}
 
-	UI_get_unit_string(analog_channels[g_i8AnalogChannelSel].processUnit,temp_l_str);
+	sys_get_unit_string(analog_channels[g_i8AnalogChannelSel].processUnit,temp_l_str);
 
 	sprintf(line_str,"Process unit: %s%s%s %sBias resistor: %s%f Ohm%s\n\r",color_left_str,temp_l_str,COLOR_DEFAULT,
 			CURSOR_RIGHT_COLUMN, color_right_str, analog_channels[g_i8AnalogChannelSel].biasResistor,COLOR_DEFAULT);
@@ -686,7 +686,7 @@ void UI_draw_info_page_sys(void){
 	/***************************************** First Line ********************************************/
 	char line_str[LINE_WIDTH];
 
-	uint32_t uptime = (uint32_t)(gu32SysTickIntCnt/1000); /* Uptime in seconds. Overflows after 127 years */
+	uint32_t uptime = (uint32_t)(gu64SysTickIntCnt/1000); /* Uptime in seconds. Overflows after 127 years */
 
 	sprintf(line_str, "Max. VCOM Tx Buf.: %i/%i %sUptime: %u s\n\r", comTbytesMax, TXBUFSIZE, CURSOR_RIGHT_COLUMN, uptime);
 
@@ -733,43 +733,43 @@ void UI_draw_info_page_PV(void){ /* Process values */
 	VCOM_PushString("			ANALOG\n\r");
 
 	/***************************************** First Line ********************************************/
-	UI_get_unit_string(analog_channels[0].processUnit, left_unit_str);
-	UI_get_unit_string(analog_channels[1].processUnit, right_unit_str);
+	sys_get_unit_string(analog_channels[0].processUnit, left_unit_str);
+	sys_get_unit_string(analog_channels[1].processUnit, right_unit_str);
 	sprintf(line_str, "CH0: %f %s%sCH1: %f %s\n\r", analog_channels[0].processValue, left_unit_str, CURSOR_RIGHT_COLUMN, analog_channels[1].processValue, right_unit_str);
 
 	VCOM_PushString((char*) line_str);
 
 	/***************************************** Second Line ********************************************/
-	UI_get_unit_string(analog_channels[2].processUnit, left_unit_str);
-	UI_get_unit_string(analog_channels[3].processUnit, right_unit_str);
+	sys_get_unit_string(analog_channels[2].processUnit, left_unit_str);
+	sys_get_unit_string(analog_channels[3].processUnit, right_unit_str);
 	sprintf(line_str, "CH2: %f %s%sCH3: %f %s\n\r", analog_channels[2].processValue, left_unit_str, CURSOR_RIGHT_COLUMN, analog_channels[3].processValue, right_unit_str);
 
 	VCOM_PushString((char*) line_str);
 
 	/***************************************** Third Line ********************************************/
-	UI_get_unit_string(analog_channels[4].processUnit, left_unit_str);
-	UI_get_unit_string(analog_channels[5].processUnit, right_unit_str);
+	sys_get_unit_string(analog_channels[4].processUnit, left_unit_str);
+	sys_get_unit_string(analog_channels[5].processUnit, right_unit_str);
 	sprintf(line_str, "CH4: %f %s%sCH5: %f %s\n\r", analog_channels[4].processValue, left_unit_str, CURSOR_RIGHT_COLUMN, analog_channels[5].processValue, right_unit_str);
 
 	VCOM_PushString((char*) line_str);
 
 	/***************************************** Fourth Line ********************************************/
-	UI_get_unit_string(analog_channels[6].processUnit, left_unit_str);
-	UI_get_unit_string(analog_channels[7].processUnit, right_unit_str);
+	sys_get_unit_string(analog_channels[6].processUnit, left_unit_str);
+	sys_get_unit_string(analog_channels[7].processUnit, right_unit_str);
 	sprintf(line_str, "CH6: %f %s%sCH7: %f %s\n\r", analog_channels[6].processValue, left_unit_str, CURSOR_RIGHT_COLUMN, analog_channels[7].processValue, right_unit_str);
 
 	VCOM_PushString((char*) line_str);
 
 	/***************************************** Fifth Line ********************************************/
-	UI_get_unit_string(analog_channels[8].processUnit, left_unit_str);
-	UI_get_unit_string(analog_channels[9].processUnit, right_unit_str);
+	sys_get_unit_string(analog_channels[8].processUnit, left_unit_str);
+	sys_get_unit_string(analog_channels[9].processUnit, right_unit_str);
 	sprintf(line_str, "CH8: %f %s%sCH8: %f %s\n\r", analog_channels[8].processValue, left_unit_str, CURSOR_RIGHT_COLUMN, analog_channels[9].processValue, right_unit_str);
 
 	VCOM_PushString((char*) line_str);
 
 	/***************************************** Sixth Line ********************************************/
-	UI_get_unit_string(analog_channels[10].processUnit, left_unit_str);
-	UI_get_unit_string(analog_channels[11].processUnit, right_unit_str);
+	sys_get_unit_string(analog_channels[10].processUnit, left_unit_str);
+	sys_get_unit_string(analog_channels[11].processUnit, right_unit_str);
 	sprintf(line_str, "CH10: %f %s%sCH11: %f %s\n\r", analog_channels[10].processValue, left_unit_str, CURSOR_RIGHT_COLUMN, analog_channels[11].processValue, right_unit_str);
 
 	VCOM_PushString((char*) line_str);
@@ -777,15 +777,15 @@ void UI_draw_info_page_PV(void){ /* Process values */
 	VCOM_PushString(ENVIRONMENTAL_SENSOR_HEADER);
 
 	/***************************************** seventh Line ********************************************/
-	UI_get_unit_string(env_sensor.temperature_processUnit, left_unit_str);
-	UI_get_unit_string(env_sensor.humidity_processUnit, right_unit_str);
+	sys_get_unit_string(env_sensor.temperature_processUnit, left_unit_str);
+	sys_get_unit_string(env_sensor.humidity_processUnit, right_unit_str);
 	sprintf(line_str, "Temperature: %f %s%sHumidity: %f%s\n\r", env_sensor.temperature_processValue, left_unit_str, CURSOR_RIGHT_COLUMN, env_sensor.humidity_processValue, right_unit_str);
 
 	VCOM_PushString((char*) line_str);
 
 	/***************************************** Eight Line ********************************************/
-	UI_get_unit_string(env_sensor.CO2_processUnit, left_unit_str);
-	//UI_get_unit_string(analog_channels[11].processUnit, right_unit_str);
+	sys_get_unit_string(env_sensor.CO2_processUnit, left_unit_str);
+	//sys_get_unit_string(analog_channels[11].processUnit, right_unit_str);
 	sprintf(line_str, "CO2: %f %s\n\r", env_sensor.CO2_processValue, left_unit_str);
 
 	VCOM_PushString((char*) line_str);
@@ -802,43 +802,43 @@ void UI_draw_info_page_FV(void){ /* Field values */
 	VCOM_PushString(ANALOG_HEADER);
 
 	/***************************************** First Line ********************************************/
-	UI_get_unit_string(analog_channels[0].fieldUnit, left_unit_str);
-	UI_get_unit_string(analog_channels[1].fieldUnit, right_unit_str);
+	sys_get_unit_string(analog_channels[0].fieldUnit, left_unit_str);
+	sys_get_unit_string(analog_channels[1].fieldUnit, right_unit_str);
 	sprintf(line_str, "CH0: %f %s%sCH1: %f %s\n\r", analog_channels[0].fieldValue, left_unit_str, CURSOR_RIGHT_COLUMN, analog_channels[1].fieldValue, right_unit_str);
 
 	VCOM_PushString((char*) line_str);
 
 	/***************************************** Second Line ********************************************/
-	UI_get_unit_string(analog_channels[2].fieldUnit, left_unit_str);
-	UI_get_unit_string(analog_channels[3].fieldUnit, right_unit_str);
+	sys_get_unit_string(analog_channels[2].fieldUnit, left_unit_str);
+	sys_get_unit_string(analog_channels[3].fieldUnit, right_unit_str);
 	sprintf(line_str, "CH2: %f %s%sCH3: %f %s\n\r", analog_channels[2].fieldValue, left_unit_str, CURSOR_RIGHT_COLUMN, analog_channels[3].fieldValue, right_unit_str);
 
 	VCOM_PushString((char*) line_str);
 
 	/***************************************** Third Line ********************************************/
-	UI_get_unit_string(analog_channels[4].fieldUnit, left_unit_str);
-	UI_get_unit_string(analog_channels[5].fieldUnit, right_unit_str);
+	sys_get_unit_string(analog_channels[4].fieldUnit, left_unit_str);
+	sys_get_unit_string(analog_channels[5].fieldUnit, right_unit_str);
 	sprintf(line_str, "CH4: %f %s%sCH5: %f %s\n\r", analog_channels[4].fieldValue, left_unit_str, CURSOR_RIGHT_COLUMN, analog_channels[5].fieldValue, right_unit_str);
 
 	VCOM_PushString((char*) line_str);
 
 	/***************************************** Fourth Line ********************************************/
-	UI_get_unit_string(analog_channels[6].fieldUnit, left_unit_str);
-	UI_get_unit_string(analog_channels[7].fieldUnit, right_unit_str);
+	sys_get_unit_string(analog_channels[6].fieldUnit, left_unit_str);
+	sys_get_unit_string(analog_channels[7].fieldUnit, right_unit_str);
 	sprintf(line_str, "CH6: %f %s%sCH7: %f %s\n\r", analog_channels[6].fieldValue, left_unit_str, CURSOR_RIGHT_COLUMN, analog_channels[7].fieldValue, right_unit_str);
 
 	VCOM_PushString((char*) line_str);
 
 	/***************************************** Third Line ********************************************/
-	UI_get_unit_string(analog_channels[8].fieldUnit, left_unit_str);
-	UI_get_unit_string(analog_channels[9].fieldUnit, right_unit_str);
+	sys_get_unit_string(analog_channels[8].fieldUnit, left_unit_str);
+	sys_get_unit_string(analog_channels[9].fieldUnit, right_unit_str);
 	sprintf(line_str, "CH8: %f %s%sCH9: %f %s\n\r", analog_channels[8].fieldValue, left_unit_str, CURSOR_RIGHT_COLUMN, analog_channels[9].fieldValue, right_unit_str);
 
 	VCOM_PushString((char*) line_str);
 
 	/***************************************** Fourth Line ********************************************/
-	UI_get_unit_string(analog_channels[10].fieldUnit, left_unit_str);
-	UI_get_unit_string(analog_channels[11].fieldUnit, right_unit_str);
+	sys_get_unit_string(analog_channels[10].fieldUnit, left_unit_str);
+	sys_get_unit_string(analog_channels[11].fieldUnit, right_unit_str);
 	sprintf(line_str, "CH10: %f %s%sCH11: %f %s\n\r", analog_channels[10].fieldValue, left_unit_str, CURSOR_RIGHT_COLUMN, analog_channels[11].fieldValue, right_unit_str);
 
 	VCOM_PushString((char*) line_str);
@@ -846,15 +846,15 @@ void UI_draw_info_page_FV(void){ /* Field values */
 	VCOM_PushString(ENVIRONMENTAL_SENSOR_HEADER);
 
 	/***************************************** seventh Line ********************************************/
-	UI_get_unit_string(env_sensor.temperature_fieldUnit, left_unit_str);
-	UI_get_unit_string(env_sensor.humidity_fieldUnit, right_unit_str);
+	sys_get_unit_string(env_sensor.temperature_fieldUnit, left_unit_str);
+	sys_get_unit_string(env_sensor.humidity_fieldUnit, right_unit_str);
 	sprintf(line_str, "Temperature: %u %s%sHumidity: %u %s\n\r", env_sensor.temperature_fieldValue, left_unit_str, CURSOR_RIGHT_COLUMN, env_sensor.humidity_fieldValue, right_unit_str);
 
 	VCOM_PushString((char*) line_str);
 
 	/***************************************** Eight Line ********************************************/
-	UI_get_unit_string(env_sensor.CO2_fieldUnit, left_unit_str);
-	//UI_get_unit_string(analog_channels[11].processUnit, right_unit_str);
+	sys_get_unit_string(env_sensor.CO2_fieldUnit, left_unit_str);
+	//sys_get_unit_string(analog_channels[11].processUnit, right_unit_str);
 	sprintf(line_str, "CO2: %u %s\n\r", env_sensor.CO2_fieldValue, left_unit_str);
 
 	VCOM_PushString((char*) line_str);
@@ -870,43 +870,43 @@ void UI_draw_info_page_noise(void){ /* Field values */
 	VCOM_PushString(ANALOG_HEADER);
 
 	/***************************************** First Line ********************************************/
-	UI_get_unit_string(analog_channels[0].fieldUnit, left_unit_str);
-	UI_get_unit_string(analog_channels[1].fieldUnit, right_unit_str);
+	sys_get_unit_string(analog_channels[0].fieldUnit, left_unit_str);
+	sys_get_unit_string(analog_channels[1].fieldUnit, right_unit_str);
 	sprintf(line_str, "CH0: %f %s%sCH1: %f %s\n\r", analog_channels[0].RMSNoise, left_unit_str, CURSOR_RIGHT_COLUMN, analog_channels[1].RMSNoise, right_unit_str);
 
 	VCOM_PushString((char*) line_str);
 
 	/***************************************** Second Line ********************************************/
-	UI_get_unit_string(analog_channels[2].fieldUnit, left_unit_str);
-	UI_get_unit_string(analog_channels[3].fieldUnit, right_unit_str);
+	sys_get_unit_string(analog_channels[2].fieldUnit, left_unit_str);
+	sys_get_unit_string(analog_channels[3].fieldUnit, right_unit_str);
 	sprintf(line_str, "CH2: %f %s%sCH3: %f %s\n\r", analog_channels[2].RMSNoise, left_unit_str, CURSOR_RIGHT_COLUMN, analog_channels[3].RMSNoise, right_unit_str);
 
 	VCOM_PushString((char*) line_str);
 
 	/***************************************** Third Line ********************************************/
-	UI_get_unit_string(analog_channels[4].fieldUnit, left_unit_str);
-	UI_get_unit_string(analog_channels[5].fieldUnit, right_unit_str);
+	sys_get_unit_string(analog_channels[4].fieldUnit, left_unit_str);
+	sys_get_unit_string(analog_channels[5].fieldUnit, right_unit_str);
 	sprintf(line_str, "CH4: %f %s%sCH5: %f %s\n\r", analog_channels[4].RMSNoise, left_unit_str, CURSOR_RIGHT_COLUMN, analog_channels[5].RMSNoise, right_unit_str);
 
 	VCOM_PushString((char*) line_str);
 
 	/***************************************** Fourth Line ********************************************/
-	UI_get_unit_string(analog_channels[6].fieldUnit, left_unit_str);
-	UI_get_unit_string(analog_channels[7].fieldUnit, right_unit_str);
+	sys_get_unit_string(analog_channels[6].fieldUnit, left_unit_str);
+	sys_get_unit_string(analog_channels[7].fieldUnit, right_unit_str);
 	sprintf(line_str, "CH6: %f %s%sCH7: %f %s\n\r", analog_channels[6].RMSNoise, left_unit_str, CURSOR_RIGHT_COLUMN, analog_channels[7].RMSNoise, right_unit_str);
 
 	VCOM_PushString((char*) line_str);
 
 	/***************************************** Third Line ********************************************/
-	UI_get_unit_string(analog_channels[8].fieldUnit, left_unit_str);
-	UI_get_unit_string(analog_channels[9].fieldUnit, right_unit_str);
+	sys_get_unit_string(analog_channels[8].fieldUnit, left_unit_str);
+	sys_get_unit_string(analog_channels[9].fieldUnit, right_unit_str);
 	sprintf(line_str, "CH8: %f %s%sCH9: %f %s\n\r", analog_channels[8].RMSNoise, left_unit_str, CURSOR_RIGHT_COLUMN, analog_channels[9].RMSNoise, right_unit_str);
 
 	VCOM_PushString((char*) line_str);
 
 	/***************************************** Fourth Line ********************************************/
-	UI_get_unit_string(analog_channels[10].fieldUnit, left_unit_str);
-	UI_get_unit_string(analog_channels[11].fieldUnit, right_unit_str);
+	sys_get_unit_string(analog_channels[10].fieldUnit, left_unit_str);
+	sys_get_unit_string(analog_channels[11].fieldUnit, right_unit_str);
 	sprintf(line_str, "CH10: %f %s%sCH11: %f %s\n\r", analog_channels[10].RMSNoise, left_unit_str, CURSOR_RIGHT_COLUMN, analog_channels[11].RMSNoise, right_unit_str);
 
 	VCOM_PushString((char*) line_str);
@@ -918,48 +918,7 @@ void UI_draw_line_separator(void){
 	VCOM_PushString("**************************************************\n\r");
 }
 
-void UI_get_unit_string(physical_unit_t unit_type, char* string){/* Max. 8 characters long */
 
-	switch(unit_type){
-
-		case UNIT_OHM:
-			strcpy(string, "Ohm");
-			break;
-
-		case UNIT_CELSIUS:
-			strcpy(string, "degC");
-			break;
-
-		case UNIT_KELVIN:
-			strcpy(string, "K");
-			break;
-
-		case UNIT_VOLT:
-			strcpy(string, "V");
-			break;
-
-		case UNIT_MILLIVOLT:
-			strcpy(string, "mV");
-			break;
-
-		case UNIT_CNT:
-			strcpy(string, "cnt.");
-			break;
-
-		case UNIT_PERCENT_RH:
-			strcpy(string, "% RH");
-			break;
-
-		case UNIT_PPM:
-			strcpy(string, "ppm");
-			break;
-
-		default: /*If the unit is not known */
-			strcpy(string, "");
-			break;
-
-	}
-}
 void UI_get_I2C_sensor_string(I2C_sensor_t type, char* string){
 
 	switch(type){

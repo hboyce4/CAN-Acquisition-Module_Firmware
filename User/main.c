@@ -52,8 +52,8 @@ int main (void)
     I2C_sensorConfigure();
 
     LCD_Init();
-    g_LCDSize=16;
-    LCD_ShowString(10,2,"Buydisplay.com");
+    //g_LCDSize=16;
+    //LCD_ShowString(10,2,"Buydisplay.com");
 
 
     while(1)
@@ -74,9 +74,18 @@ int main (void)
         if(gbDrawNewUIFrame){// Every UI_FRAME_INTERVAL_MS milliseconds
         	gbDrawNewUIFrame = false;
 
-        	if(gbTerminalActive){
-        		UI_draw();
+        	/* Update all the user-facing stuff*/
 
+        	if(Error_GetCode()){ /* If error code isn't zero */
+        		LED_RED = LED_ON;
+			}else{
+				LED_RED = LED_OFF;
+			}
+
+        	LCD_Draw();
+
+        	if(gbTerminalActive){
+        		UI_draw();/* user interface on VCOM port */
         	}
 
         }
@@ -90,6 +99,8 @@ int main (void)
         	cycleLED();
 
         	I2C_sensorOncePerSecondRoutine();/* This easily takes 10 ms*/
+
+        	LCD_FindNextChannel();
 
         }
 

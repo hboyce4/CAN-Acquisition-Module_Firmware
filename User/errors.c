@@ -10,12 +10,8 @@
 
 /* g_ErrorCode is zero when there are no errors
  * Each error has one bit assigned to it, through masks defined in the header file.
- *
- *
- * */
-
-
-uint32_t g_ErrorCode = ERROR_CORRUPTED_CONFIG /*| ERROR_SOME_OTHER_ERROR */; // Put errors that are initialized to 1 here
+ */
+uint32_t g_ErrorCode = ERROR_CORRUPTED_CONFIG /*| ERROR_SOME_OTHER_ERROR */; // Put errors that are initialized to true here
 
 uint32_t Error_GetCode(void){
 

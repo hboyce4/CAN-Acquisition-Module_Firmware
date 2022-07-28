@@ -123,6 +123,7 @@ void Analog_ConvertToFieldValue(void){
 	uint8_t i;
 	for(i = 0; i <= EADC_LAST_GP_CHANNEL; i++){/* For all general purpose channels*/
 
+
 		switch(analog_channels[i].fieldUnit){/* If the field (sensor output) unit is */
 
 			case UNIT_OHM: /* ohms, then */
@@ -158,9 +159,6 @@ void Analog_FilterFieldValues(void){
 	uint8_t i;/* i will be the channel number */
 	for(i = 0; i <= EADC_LAST_GP_CHANNEL; i++){/* For every channel */
 
-		//if(analog_channels[i].fieldValue <= 0){
-		//	printf("Negative\n\r");
-		//}
 
 		if(firstRun){/* If the function has never been run before */
 			analog_channels[i].fieldValue_filtered = analog_channels[i].fieldValue; /* Just copy the values*/
@@ -245,47 +243,53 @@ void Analog_ConvertToProcessValues(void){
 	uint8_t i;/* i will be the channel number */
 	for(i = 0; i <= EADC_LAST_GP_CHANNEL; i++){/* For every channel */
 
-		switch(analog_channels[i].sensorType){/* According to the sensor type: */
+		if(analog_channels[i].isEnabled){/* if the channel is enabled */
 
-			case ANALOG_SENSOR_NTC: /* If the sensor is an NTC thermistor */
+			switch(analog_channels[i].sensorType){/* According to the sensor type: */
 
-				if(analog_channels[i].processUnit == UNIT_KELVIN || analog_channels[i].processUnit == UNIT_CELSIUS){/* If Kelvin or Celsius */
+				case ANALOG_SENSOR_NTC: /* If the sensor is an NTC thermistor */
 
-					/* Using the Steinhart-Hart equation as per Wikipedia, get the Kelvin value */
-					float r_inf;
-					r_inf = analog_channels[i].NTCRZero * expf(-analog_channels[i].NTCBeta / ANALOG_NTC_T_ZERO);
-					analog_channels[i].processValue = analog_channels[i].NTCBeta / logf(analog_channels[i].fieldValue_filtered/r_inf);
+					if(analog_channels[i].processUnit == UNIT_KELVIN || analog_channels[i].processUnit == UNIT_CELSIUS){/* If Kelvin or Celsius */
 
-					if(analog_channels[i].processUnit == UNIT_CELSIUS){/* If celsius */
-						analog_channels[i].processValue -= 273.15; /* Convert by substracting absolute zero */
+						/* Using the Steinhart-Hart equation as per Wikipedia, get the Kelvin value */
+						float r_inf;
+						r_inf = analog_channels[i].NTCRZero * expf(-analog_channels[i].NTCBeta / ANALOG_NTC_T_ZERO);
+						analog_channels[i].processValue = analog_channels[i].NTCBeta / logf(analog_channels[i].fieldValue_filtered/r_inf);
+
+						if(analog_channels[i].processUnit == UNIT_CELSIUS){/* If celsius */
+							analog_channels[i].processValue -= 273.15; /* Convert by substracting absolute zero */
+						}
+
+					}else{
+						VCOM_PushString("Process unit not supported on channel ");
+						char str[SHORT_STRING_LENGTH];
+						sprintf(str, "%u\n\r", i); /* Print error message */
+						VCOM_PushString(str);
 					}
+					break;
 
-				}else{
-					VCOM_PushString("Process unit not supported on channel ");
-					char str[SHORT_STRING_LENGTH];
-					sprintf(str, "%u\n\r", i); /* Print error message */
-					VCOM_PushString(str);
-				}
-				break;
+				case ANALOG_SENSOR_NONE: /* If no sensor */
+					if(analog_channels[i].fieldUnit == analog_channels[i].processUnit){ /* the units have to match because */
+						analog_channels[i].processValue = analog_channels[i].fieldValue_filtered; /* the process value is just copied to the field value */
+					}else{/* Else */
+						Error_Set(ERROR_INVALID_CONFIG);
+						static bool sent = false;
+						if(!sent){
+							printf("Unit mismatch on channel %u\n", i); /* Print error message */
+							sent = true;
+						}
 
-			case ANALOG_SENSOR_NONE: /* If no sensor */
-				if(analog_channels[i].fieldUnit == analog_channels[i].processUnit){ /* the units have to match because */
-					analog_channels[i].processValue = analog_channels[i].fieldValue_filtered; /* the process value is just copied to the field value */
-				}else{/* Else */
-					Error_Set(ERROR_INVALID_CONFIG);
-					static bool sent = false;
-					if(!sent){
-						printf("Unit mismatch on channel %u\n", i); /* Print error message */
-						sent = true;
+
 					}
+					break;
 
+				default:
+					break;
 
-				}
-				break;
+			}
 
-			default:
-				break;
-
+		}else{/* else, the channel is not enabled, */
+			analog_channels[i].processValue = 0; /* Force to zero */
 		}
 
 	}

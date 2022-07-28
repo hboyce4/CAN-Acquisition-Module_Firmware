@@ -16,7 +16,7 @@
 
 
 /* SysTick */
-volatile uint64_t gu32SysTickIntCnt = 0;
+volatile uint64_t gu64SysTickIntCnt = 0;
 volatile bool gbSecondsFlag = false;
 
 /* UI */
@@ -40,7 +40,7 @@ void interrupt_setPriorities(void){
 /* Most important interrupt */
 void SysTick_Handler(void)	// Every millisecond (Medium frequency).
 {
-    gu32SysTickIntCnt++;
+    gu64SysTickIntCnt++;
 
     /* USB terminal on host PC timeout*/
     if(gu8PcTerminalActive_TimeoutCounter){/* If the inactivity counter has not elapsed*/

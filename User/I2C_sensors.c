@@ -176,26 +176,32 @@ void I2C_sensorAutodetect(void){
 	if(I2C_sensorSpam(SHT3x_ADR)){
 		env_sensor.sensorType = I2C_SENSOR_SHT3x;
 
+		env_sensor.temperature_isEnabled = true;
 		env_sensor.temperature_fieldUnit = UNIT_CNT;
 		env_sensor.temperature_processUnit = UNIT_CELSIUS;
 
+		env_sensor.humidity_isEnabled = true;
 		env_sensor.humidity_fieldUnit = UNIT_CNT;
 		env_sensor.humidity_processUnit = UNIT_PERCENT_RH;
 
-		env_sensor.CO2_fieldUnit = UNIT_NONE; /* No CO2 sensing on the SHT3x */
+		env_sensor.CO2_isEnabled = false;/* No CO2 sensing on the SHT3x */
+		env_sensor.CO2_fieldUnit = UNIT_NONE;
 		env_sensor.CO2_processUnit = UNIT_NONE;
 
 
 	}else if(I2C_sensorSpam(SCD30_ADR)){
 		env_sensor.sensorType = I2C_SENSOR_SCD30;
 
-		env_sensor.temperature_fieldUnit = UNIT_NONE;
+		env_sensor.temperature_isEnabled = true;
+		env_sensor.temperature_fieldUnit = UNIT_NONE;/* The SCD30 does not transmit field units. It transmits floats directly. */
 		env_sensor.temperature_processUnit = UNIT_CELSIUS;
 
-		env_sensor.humidity_fieldUnit = UNIT_NONE;
+		env_sensor.humidity_isEnabled = true;
+		env_sensor.humidity_fieldUnit = UNIT_NONE;/* The SCD30 does not transmit field units. It transmits floats directly. */
 		env_sensor.humidity_processUnit = UNIT_PERCENT_RH;
 
-		env_sensor.CO2_fieldUnit = UNIT_NONE; /* No CO2 sensing on the SHT3x */
+		env_sensor.CO2_isEnabled = true;
+		env_sensor.CO2_fieldUnit = UNIT_NONE;/* The SCD30 does not transmit field units. It transmits floats directly. */
 		env_sensor.CO2_processUnit = UNIT_PPM;
 
 	}else{

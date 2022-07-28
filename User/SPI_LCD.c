@@ -10,15 +10,21 @@
 /* Driver IC is a ST7567A
  * https://www.crystalfontz.com/controllers/Sitronix/ST7567A/483/ */
 
-#include <stdbool.h>
+
 #include "NuMicro.h"
 #include "SPI_LCD.h"
 #include "user_sys.h"
+#include "CAN_message.h"
+#include "analog.h"
+#include "I2C_sensors.h"
+#include "interrupt.h"
 
 
 
-uint8_t	 g_LCDSize;
+uint8_t	 g_LCDFontSize;
 bool g_LastWriteType;
+uint8_t g_DisplayChannelIndex;
+
 
 extern const uint8_t F6x8[][6];
 extern const uint8_t F8X16[];
@@ -97,7 +103,7 @@ void LCD_Init(void)
 	delay_ms(10);
 	LCD_Write_Command(0x2c);  	//Control built-in power circuit ON	    VB
 	LCD_Write_Command(0x2e);  	//Control built-in power circuit ON	    VR
-	LCD_Write_Command(0x2f);  	//Control built-in power circuit ON	    VF
+	LCD_Write_Command(0x2f);  	//Control built-in power circuit ON	    VFgu64SysTickIntCnt
 	delay_ms(10);
 
 	LCD_Write_Command(0xf8);  //Set booster level
@@ -159,8 +165,8 @@ void LCD_ShowChar(uint8_t x,uint8_t y,char chr)
 {
 	uint8_t c=0,i=0;
 		c=chr-' ';
-		if(x>LCD_MAX_COLUMN-1){x=0;if(g_LCDSize==16)y+=2;else y+=1;}
-		if(g_LCDSize ==16)
+		if(x>LCD_MAX_COLUMN-1){x=0;if(g_LCDFontSize==16)y+=2;else y+=1;}
+		if(g_LCDFontSize ==16)
 			{
 			LCD_Set_Pos(x,y);
 			for(i=0;i<8;i++)
@@ -186,7 +192,7 @@ void LCD_ShowString(uint8_t x,uint8_t y,char *chr)
 	while (chr[j]!='\0')
 	{		LCD_ShowChar(x,y,chr[j]);
 			x+=8;
-		if(x>124){x=0; if(g_LCDSize==16)y+=2;else y+=1;}
+		if(x>124){x=0; if(g_LCDFontSize==16)y+=2;else y+=1;}
 			j++;
 	}
 }
@@ -204,6 +210,91 @@ void LCD_ClearScreen(void)
 		}
 	}
     return;
+}
+
+void LCD_Draw(void){
+
+
+	char buff_str[LCD_STR_BUFF_LEN];
+	char channel_str[LCD_STR_BUFF_LEN];
+	char unit_str[LCD_STR_BUFF_LEN];
+
+	LCD_ClearScreen();
+	sprintf(buff_str,"Node ID: %u", g_CANNodeID);
+	g_LCDFontSize=LCD_SIZE_LARGE; /* Display in large font cuz that's the most useful info */
+	LCD_ShowString(10,0,buff_str);
+
+	sprintf(buff_str,"Tx ID: 0x%X", (g_CANNodeID | 0x80));/* Node ID in hex, plus the 0x80 that is present on all transmitted IDs */
+	g_LCDFontSize=LCD_SIZE_SMALL; /* The rest will be displayed in small font */
+	LCD_ShowString(0,2,buff_str);
+
+	sprintf(buff_str,"Err. Code:%X", Error_GetCode());/* Display current error code */
+	LCD_ShowString((LCD_MAX_COLUMN/2),2,buff_str);/* Draw half way down the screen */
+
+	LCD_SetChannelString(g_DisplayChannelIndex, channel_str);
+
+	float meas;
+	if(g_DisplayChannelIndex <= EADC_LAST_GP_CHANNEL){
+		meas = analog_channels[g_DisplayChannelIndex].processValue;
+		sys_get_unit_string(analog_channels[g_DisplayChannelIndex].processUnit,unit_str);
+	}else if(g_DisplayChannelIndex == (EADC_LAST_GP_CHANNEL + 1)){
+		meas = env_sensor.temperature_processValue;
+		sys_get_unit_string(env_sensor.temperature_processUnit,unit_str);
+	}else if(g_DisplayChannelIndex == (EADC_LAST_GP_CHANNEL + 2)){
+		meas = env_sensor.humidity_processValue;
+		sys_get_unit_string(env_sensor.humidity_processUnit,unit_str);
+	}else if(g_DisplayChannelIndex == (EADC_LAST_GP_CHANNEL + 3)){
+		meas = env_sensor.CO2_processValue;
+		sys_get_unit_string(env_sensor.CO2_processUnit,unit_str);
+	}
+
+
+	sprintf(buff_str,"%s%f %s", channel_str, meas, unit_str);/* Display current error code */
+
+}
+
+
+bool LCD_CheckIfChannelEnabled(uint8_t index){
+
+	if(index <= EADC_LAST_GP_CHANNEL){
+		return analog_channels[index].isEnabled;
+	}else if(index == (EADC_LAST_GP_CHANNEL + 1)){
+		return env_sensor.temperature_isEnabled;
+	}else if(index == (EADC_LAST_GP_CHANNEL + 2)){
+		return env_sensor.humidity_isEnabled;
+	}else if(index == (EADC_LAST_GP_CHANNEL + 3)){
+		return env_sensor.CO2_isEnabled;
+	}else{/* Should never happen theoretically */
+		return false;
+	}
+
+
+}
+
+void LCD_FindNextChannel(void){
+
+	g_DisplayChannelIndex++; /* Try next channel */
+	if(g_DisplayChannelIndex > EADC_LAST_GP_CHANNEL + 3){/* If that gets us after the last index*/
+		g_DisplayChannelIndex = 0;/* Rollover */
+	}
+
+	while(!(LCD_CheckIfChannelEnabled(g_DisplayChannelIndex))){/* While the selected channel is disabled*/
+		g_DisplayChannelIndex++; /* Try next channel */
+		if(g_DisplayChannelIndex > EADC_LAST_GP_CHANNEL + 3){/* If that gets us after the last index*/
+			g_DisplayChannelIndex = 0;/* Rollover */
+		}
+	}
+
+}
+
+void LCD_SetChannelString(uint8_t index, char* string){
+
+	if(index <= EADC_LAST_GP_CHANNEL){
+			sprintf(string, "CH%u: ");
+	}else{
+			sprintf(string, "Sens.: ");
+	}
+
 }
 
 

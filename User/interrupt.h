@@ -21,7 +21,7 @@
 #define I2C_PRIORITY 12 /* I2C has low priority since it's slow and can easily wait. */
 
 
-extern volatile uint64_t gu32SysTickIntCnt;
+extern volatile uint64_t gu64SysTickIntCnt;
 
 extern volatile bool gbTerminalActive;
 extern volatile bool gbSecondsFlag;

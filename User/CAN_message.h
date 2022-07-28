@@ -88,8 +88,8 @@
  *
  * TPDO16					// Contains data from the eighth Analog channel (CH8)
  * 		Extended ID:		0x00002080 + NodeID
- *		Data bytes [0-3]:	Module error code
- *		Data bytes [4-7]:	Zeroes
+ *		Data bytes [0-3]:	Module error code as uint32
+ *		Data bytes [4-7]:	Module uptime as uint32 in seconds
  *
  * So far, no mechanism exists to send or automatically configure the units.
  * They will have to be matched manually on the host PC and the acquisition modules.
@@ -105,6 +105,7 @@
  	 	 	 	 	 	 	 That way if a node looses calibration and goes to node ID 1, there's no conflict. */
 #define CAN_NODE_ID_MAX 127 /* Largest permitted by standard */
 
+#define CAN_TX_SUCCES_LED_ON_MS 10 /* Milliseconds the LED is kept on after CAN TX success */
 
 extern uint32_t g_CANSpeed;
 extern uint8_t g_CANNodeID;

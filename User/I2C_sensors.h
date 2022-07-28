@@ -9,6 +9,7 @@
 #define I2C_SENSORS_H_
 
 #include <stdint.h>
+#include <stdbool.h>
 #include "user_sys.h"
 
 #define I2C_SPEED 50000 /* SCD30 Datasheet recommends a maximum speed of 50 kbit/s */
@@ -37,16 +38,19 @@ typedef struct digital_sensor_channel{ /* Process values or state variables */
 
 	I2C_sensor_t sensorType;
 
+	bool temperature_isEnabled; /* measurement is available or not */
 	uint32_t temperature_fieldValue;/* [cnt] Raw value from the converter */
 	float temperature_processValue;
 	physical_unit_t temperature_fieldUnit;/* The field unit is what the sensor outputs and the acquisition module measures. Ex. Ohms or volts. */
 	physical_unit_t temperature_processUnit; /* The process unit is what the sensor measures, the unit of the process. It is what we are interested in ultimately. Ex. celsius, watt/m^2. etc. */
 
+	bool humidity_isEnabled; /* measurement is available or not */
 	uint32_t humidity_fieldValue;/* [cnt] Raw value from the converter */
 	float humidity_processValue;
 	physical_unit_t humidity_fieldUnit;/* The field unit is what the sensor outputs and the acquisition module measures. Ex. Ohms or volts. */
 	physical_unit_t humidity_processUnit; /* The process unit is what the sensor measures, the unit of the process. It is what we are interested in ultimately. Ex. celsius, watt/m^2. etc. */
 
+	bool CO2_isEnabled; /* measurement is available or not */
 	uint32_t CO2_fieldValue;/* [cnt] Raw value from the converter *Not used* */
 	float CO2_processValue;
 	physical_unit_t CO2_fieldUnit;/* The field unit is what the sensor outputs and the acquisition module measures. Ex. Ohms or volts. */

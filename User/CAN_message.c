@@ -20,6 +20,7 @@
 #include "I2C_sensors.h"
 #include "analog.h"
 #include "errors.h"
+#include "interrupt.h"
 
 /*---------------------------------------------------------------------------------------------------------*/
 /* Global variables                                                                                        */
@@ -81,13 +82,17 @@ void CAN_Service(void){
 		CAN_BuildAndSendMessage_32(3, 0x00000380 + g_CANNodeID, &env_sensor.CO2_fieldValue, &env_sensor.CO2_processValue);
 		uint8_t i;
 		for(i = 0; i < EADC_TOTAL_CHANNELS; i++){/* Messages 4 to 15 */
-			CAN_BuildAndSendMessage_32(i + 4, 0x00001080 + (0x100*i) + g_CANNodeID, &analog_channels[i].fieldValue, &analog_channels[i].processValue);
-		}
-		uint32_t err_l, err_h;
-		err_l = Error_GetCode();
-		err_h = 0;
-		CAN_BuildAndSendMessage_32(16, 0x00002080 + g_CANNodeID, &err_l, &err_h);
 
+			if(analog_channels[i].isEnabled){
+				CAN_BuildAndSendMessage_32(i + 4, 0x00001080 + (0x100*i) + g_CANNodeID, &analog_channels[i].fieldValue, &analog_channels[i].processValue);
+			}
+
+
+		}
+		uint32_t health_msg_l, health_msg_h;
+		health_msg_l = Error_GetCode();
+		health_msg_h = (uint32_t)(gu64SysTickIntCnt/1000);
+		CAN_BuildAndSendMessage_32(16, 0x00002080 + g_CANNodeID, &health_msg_l, &health_msg_h);
 
 		printf("CAN SYNC received.\n");
 	}
@@ -127,5 +132,14 @@ void CAN_BuildAndSendMessage_32(uint8_t number, uint32_t id, void* lower, void* 
 
 	}
 
+
+}
+
+void CAN_CheckTransmitSuccess(void){
+
+	static uint16_t countdown;
+	if(CAN0->STATUS & CAN_STATUS_TXOK_Msk){/* If a message has been successfully transmitted */
+
+	}
 
 }
