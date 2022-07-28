@@ -68,6 +68,9 @@ int main (void)
 
         CAN_Service();
 
+        if(){ /* If CAN peripheral is not busy anymore */
+        	LED_GREEN = LED_OFF; /* turn on green LED */
+        }
 
 
 
