@@ -23,7 +23,7 @@ volatile bool gbSecondsFlag = false;
 volatile bool gbTerminalActive = false;
 volatile uint8_t gu8PcTerminalActive_TimeoutCounter = 0;
 
-volatile bool gbDrawNewUIFrame = false;
+volatile bool gbDrawNewUIFrame = false; /* Flag that signals it's time to update the user interface */
 
 volatile bool gbSampleAnalog = false;
 
@@ -71,6 +71,20 @@ void SysTick_Handler(void)	// Every millisecond (Medium frequency).
 		gbSampleAnalog = true;
 	}
 	u16AnalogSampleCounter--; // Decrease the counter every time SysTick_Handler is called
+
+
+    static uint16_t cnt;
+    if(CAN0->STATUS & CAN_STATUS_TXOK_Msk){ /* If CAN peripheral has successfully sent a message */
+    	CAN0->STATUS = (CAN0->STATUS & ~CAN_STATUS_TXOK_Msk); /* Clear the flag */
+    	cnt = CAN_TX_SUCCES_LED_ON_MS; /* Reset the counter */
+    	LED_GREEN = LED_ON; /* turn on green LED */
+    }
+    if(cnt){/* If the countdown is not zero */
+    	cnt--;
+    }else{/* Else the countdown is zero*/
+    	LED_GREEN = LED_OFF; /* turn off green LED */
+    }
+
 
 }
 
@@ -310,6 +324,7 @@ void I2C0_IRQHandler(void)
 
     	if (u32Status == 0x08){                      /* START has been transmitted */
 
+    		LED_BLUE = LED_ON; /* turn on blue LED */
 			if(g_u8Index){ /* If the start condition was sent with index not at zero */
 				/* We're doing a plain read without a command sent first. The next thing we have to do is a read. Prepare SLA+R (slave read) */
 				/* This is when repeated start is not used. */
@@ -327,6 +342,7 @@ void I2C0_IRQHandler(void)
     	else if (u32Status == 0x10){                 /* Repeat START has been transmitted and prepare SLA+R */
     		/* Repeated start only comes after a write */
 
+    		LED_BLUE = LED_ON; /* turn on blue LED */
     		I2C_SET_DATA(I2C0, (g_u8DeviceAddr << 1) | 0x01);  /* Write SLA+R (Slave with read mask) to Register I2CDAT */
 			I2C_SET_CONTROL_REG(I2C0, I2C_CTL_SI);
 
@@ -378,6 +394,7 @@ void I2C0_IRQHandler(void)
 				}else{/* else we've sent the whole buffer */
 					I2C_SET_CONTROL_REG(I2C0, I2C_CTL_STO | I2C_CTL_SI); /* Send STOP and clear interrupt flag. */
 					g_bEndFlag = true; /* Flag the operation as finished */
+					LED_BLUE = LED_OFF; /* turn off blue LED */
 				}
 
 			}
@@ -419,6 +436,7 @@ void I2C0_IRQHandler(void)
 			I2C_SET_CONTROL_REG(I2C0, I2C_CTL_STO | I2C_CTL_SI);/* Send a STOP and clear interrupt flag */
 
 			g_bEndFlag = true; /* Set the flag indicating we're finished */
+			LED_BLUE = LED_OFF; /* turn off blue LED */
 		}
 
 		else{

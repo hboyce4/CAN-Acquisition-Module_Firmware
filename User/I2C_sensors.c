@@ -250,6 +250,8 @@ void I2C_sensorConfigure(void){
 
 void I2C_sensorOncePerSecondRoutine(void){
 
+	LED_BLUE = LED_ON; /* Switch on LED to mark beginning of transaction */
+
 	switch(env_sensor.sensorType){
 
 		case I2C_SENSOR_SHT3x:
@@ -288,6 +290,7 @@ void I2C_sensorCheckIfNewDataAndConvert(void){
 
 	if(g_bEndFlag){/* If transfer finished */
 		g_bEndFlag = false;
+
 
 		uint16_t cmd = 0;
 

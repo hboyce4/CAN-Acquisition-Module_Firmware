@@ -7,6 +7,7 @@
 #include "interrupt.h"
 #include "NuMicro.h"
 #include "user_sys.h"
+#include "string.h"
 
 void delay_ms(uint32_t delay){ /*Generates a milliseconds delay. NOT ACCURATE. Use a hardware timer for accuracy*/
 

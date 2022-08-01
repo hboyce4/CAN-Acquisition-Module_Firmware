@@ -19,6 +19,7 @@
 #include "CAN_message.h"
 #include "SPI_LCD.h"
 #include "persistent_data.h"
+#include "errors.h"
 
 int main (void)
 {
@@ -56,23 +57,16 @@ int main (void)
     //LCD_ShowString(10,2,"Buydisplay.com");
 
 
-    while(1)
-    {
+    while(1){
+
     	// All the time
         VCOM_TransferData();
-
 
         UI_read_user_input();
 
         I2C_sensorCheckIfNewDataAndConvert();
 
         CAN_Service();
-
-        if(){ /* If CAN peripheral is not busy anymore */
-        	LED_GREEN = LED_OFF; /* turn on green LED */
-        }
-
-
 
         if(gbDrawNewUIFrame){// Every UI_FRAME_INTERVAL_MS milliseconds
         	gbDrawNewUIFrame = false;
@@ -85,9 +79,9 @@ int main (void)
 				LED_RED = LED_OFF;
 			}
 
-        	LCD_Draw();
+        	LCD_Draw();/* Update LCD */
 
-        	if(gbTerminalActive){
+        	if(gbTerminalActive){/* If the VCOM port over USB is connected, and a terminal is open on the PC */
         		UI_draw();/* user interface on VCOM port */
         	}
 
@@ -97,13 +91,17 @@ int main (void)
         	gbSecondsFlag = false;// Clear the flag
         	// Do things that need to be done every second
 
-        	//ADC_StartAcquisition(); /* Run an acquisition every second */
-
-        	cycleLED();
-
         	I2C_sensorOncePerSecondRoutine();/* This easily takes 10 ms*/
 
-        	LCD_FindNextChannel();
+        	static uint8_t lcd_cnt = 0;
+        	lcd_cnt++; /* Increment the counter everytime */
+        	if(lcd_cnt >= LCD_SECONDS_PER_CHANNEL){
+        		LCD_FindNextChannel();
+        		lcd_cnt = 0;
+        	}
+
+
+
 
         }
 

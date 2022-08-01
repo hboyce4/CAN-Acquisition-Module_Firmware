@@ -105,7 +105,7 @@
  	 	 	 	 	 	 	 That way if a node looses calibration and goes to node ID 1, there's no conflict. */
 #define CAN_NODE_ID_MAX 127 /* Largest permitted by standard */
 
-#define CAN_TX_SUCCES_LED_ON_MS 10 /* Milliseconds the LED is kept on after CAN TX success */
+#define CAN_TX_SUCCES_LED_ON_MS 100 /* Milliseconds the LED is kept on after CAN TX success */
 
 extern uint32_t g_CANSpeed;
 extern uint8_t g_CANNodeID;

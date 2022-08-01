@@ -135,11 +135,3 @@ void CAN_BuildAndSendMessage_32(uint8_t number, uint32_t id, void* lower, void* 
 
 }
 
-void CAN_CheckTransmitSuccess(void){
-
-	static uint16_t countdown;
-	if(CAN0->STATUS & CAN_STATUS_TXOK_Msk){/* If a message has been successfully transmitted */
-
-	}
-
-}

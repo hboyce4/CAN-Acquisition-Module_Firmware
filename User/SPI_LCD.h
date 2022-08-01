@@ -29,6 +29,8 @@
 
 #define LCD_STR_BUFF_LEN 32 /* Longest string we're ever going to display on the screen */
 
+#define LCD_SECONDS_PER_CHANNEL 3 /* How long a channel gets displayed on the LCD before going to the next */
+
 extern uint8_t	 g_LCDFontSize;
 
 void SPI_Init(void);

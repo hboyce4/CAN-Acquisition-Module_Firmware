@@ -5,7 +5,7 @@
  *      Author: Hugo Boyce
  */
 
-/* Adapted from BuyDisplay.com code example */
+/* Adapted from BuyDisplay.com's (rather poor) code example */
 /* https://www.buydisplay.com/cog-serial-spi-132x32-graphic-lcd-display-no-backlight-st7567a */
 /* Driver IC is a ST7567A
  * https://www.crystalfontz.com/controllers/Sitronix/ST7567A/483/ */
@@ -189,11 +189,20 @@ void LCD_ShowChar(uint8_t x,uint8_t y,char chr)
 void LCD_ShowString(uint8_t x,uint8_t y,char *chr)
 {
 	uint8_t j=0;
-	while (chr[j]!='\0')
-	{		LCD_ShowChar(x,y,chr[j]);
+	while (chr[j]!='\0'){
+		LCD_ShowChar(x,y,chr[j]);
+		if(g_LCDFontSize == LCD_SIZE_LARGE){
 			x+=8;
-		if(x>124){x=0; if(g_LCDFontSize==16)y+=2;else y+=1;}
-			j++;
+		}else if(g_LCDFontSize == LCD_SIZE_SMALL){
+			x+=6;
+		}
+
+
+		if(x>124){
+			x=0;
+			if(g_LCDFontSize==LCD_SIZE_LARGE)y+=2;else y+=1;
+		}
+		j++;
 	}
 }
 
@@ -222,13 +231,13 @@ void LCD_Draw(void){
 	LCD_ClearScreen();
 	sprintf(buff_str,"Node ID: %u", g_CANNodeID);
 	g_LCDFontSize=LCD_SIZE_LARGE; /* Display in large font cuz that's the most useful info */
-	LCD_ShowString(10,0,buff_str);
+	LCD_ShowString(15,0,buff_str);
 
-	sprintf(buff_str,"Tx ID: 0x%X", (g_CANNodeID | 0x80));/* Node ID in hex, plus the 0x80 that is present on all transmitted IDs */
+	sprintf(buff_str,"TxID:0x%X", (g_CANNodeID | 0x80));/* Node ID in hex, plus the 0x80 that is present on all transmitted IDs */
 	g_LCDFontSize=LCD_SIZE_SMALL; /* The rest will be displayed in small font */
 	LCD_ShowString(0,2,buff_str);
 
-	sprintf(buff_str,"Err. Code:%X", Error_GetCode());/* Display current error code */
+	sprintf(buff_str,"Err:0x%X", Error_GetCode());/* Display current error code */
 	LCD_ShowString((LCD_MAX_COLUMN/2),2,buff_str);/* Draw half way down the screen */
 
 	LCD_SetChannelString(g_DisplayChannelIndex, channel_str);
@@ -250,6 +259,7 @@ void LCD_Draw(void){
 
 
 	sprintf(buff_str,"%s%f %s", channel_str, meas, unit_str);/* Display current error code */
+	LCD_ShowString(0,3,buff_str);/* Draw half way down the screen */
 
 }
 
@@ -290,7 +300,7 @@ void LCD_FindNextChannel(void){
 void LCD_SetChannelString(uint8_t index, char* string){
 
 	if(index <= EADC_LAST_GP_CHANNEL){
-			sprintf(string, "CH%u: ");
+			sprintf(string, "CH%u: ", index);
 	}else{
 			sprintf(string, "Sens.: ");
 	}
