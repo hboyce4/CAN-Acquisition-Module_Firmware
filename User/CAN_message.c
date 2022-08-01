@@ -77,9 +77,16 @@ void CAN_Service(void){
 		/* and send messages */
 
 		/* See CAN_message.h for definitions */
-		CAN_BuildAndSendMessage_32(1, 0x00000180 + g_CANNodeID, &env_sensor.temperature_fieldValue, &env_sensor.temperature_processValue);
-		CAN_BuildAndSendMessage_32(2, 0x00000280 + g_CANNodeID, &env_sensor.humidity_fieldValue, &env_sensor.humidity_processValue);
-		CAN_BuildAndSendMessage_32(3, 0x00000380 + g_CANNodeID, &env_sensor.CO2_fieldValue, &env_sensor.CO2_processValue);
+		if(env_sensor.temperature_isEnabled){
+			CAN_BuildAndSendMessage_32(1, 0x00000180 + g_CANNodeID, &env_sensor.temperature_fieldValue, &env_sensor.temperature_processValue);
+		}
+		if(env_sensor.humidity_isEnabled){
+			CAN_BuildAndSendMessage_32(2, 0x00000280 + g_CANNodeID, &env_sensor.humidity_fieldValue, &env_sensor.humidity_processValue);
+		}
+		if(env_sensor.CO2_isEnabled){
+			CAN_BuildAndSendMessage_32(3, 0x00000380 + g_CANNodeID, &env_sensor.CO2_fieldValue, &env_sensor.CO2_processValue);
+		}
+
 		uint8_t i;
 		for(i = 0; i < EADC_TOTAL_CHANNELS; i++){/* Messages 4 to 15 */
 

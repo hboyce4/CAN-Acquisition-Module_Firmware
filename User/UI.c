@@ -721,6 +721,10 @@ void UI_draw_info_page_sys(void){
 	sprintf(line_str, "Error code: %08X (zero is no error)\n\r", Error_GetCode());
 	VCOM_PushString((char*) line_str);
 
+	/******************************** Version ************************************************************/
+	sprintf(line_str, "Version: %s %s\n\r", __DATE__, __TIME__); /* current date and time when the preprocessor is run, using standard predefined macros */
+	VCOM_PushString((char*) line_str);
+
 }
 void UI_draw_info_page_PV(void){ /* Process values */
 
