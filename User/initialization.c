@@ -82,15 +82,23 @@ void SYS_Init(void)
 
     /***************************** CRC *****************************************/
     CLK_EnableModuleClock(CRC_MODULE);
-    /***************************** CRC *****************************************/
+    /***************************** CRC end *************************************/
 
-    /***************************** SysTick ***************************************/
+
+    /***************************** SysTick *************************************/
     /* Update System Core Clock */
     SystemCoreClockUpdate();
     /* SysTick 1 millisecond interrupts  */
     SysTick_Config(SystemCoreClock / 1000); /* SysTick is driven by CPU Clock */
     NVIC_SetPriority(SysTick_IRQn, 1);// Set the interrupt priority.
-    /***************************** SysTick End ***********************************/
+    /***************************** SysTick End *********************************/
+
+    /***************************** Watch dog timer *****************************/
+    CLK_EnableModuleClock(WDT_MODULE);
+    CLK_SetModuleClock(WDT_MODULE, CLK_CLKSEL1_WDTSEL_LIRC, 0);
+    WDT_Open(WDT_TIMEOUT_2POW16, WDT_RESET_DELAY_18CLK, TRUE, FALSE);/* Needs unlocked registers. This yields a time interval of 6.55 to 6.96 seconds  */
+    /***************************** WDT end *************************************/
+
 
     /* End of protected registers */
     /* Lock protected registers */

@@ -60,7 +60,9 @@ int main (void)
     while(1){
 
     	// All the time
-        VCOM_TransferData();
+    	WDT_RESET_COUNTER();
+
+    	VCOM_TransferData();
 
         UI_read_user_input();
 
