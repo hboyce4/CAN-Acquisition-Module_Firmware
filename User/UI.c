@@ -714,7 +714,7 @@ void UI_draw_info_page_sys(void){
 
 
 	/******************************** Unique ID *********************************************************/
-	sprintf(line_str, "Unique ID: %08X %08X %08X\n\r", g_u32UID[2], g_u32UID[1], g_u32UID[0]);
+	sprintf(line_str, "Unique ID: %08X %08X %08X\n\r", g_u32UID[0], g_u32UID[1], g_u32UID[2]);
 	VCOM_PushString((char*) line_str);
 
 	/******************************** Error code *********************************************************/

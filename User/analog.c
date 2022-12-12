@@ -261,10 +261,11 @@ void Analog_ConvertToProcessValues(void){
 						}
 
 					}else{
-						VCOM_PushString("Process unit not supported on channel ");
-						char str[SHORT_STRING_LENGTH];
-						sprintf(str, "%u\n\r", i); /* Print error message */
-						VCOM_PushString(str);
+						Error_Set(ERROR_INVALID_CONFIG);
+						//VCOM_PushString("Process unit not supported on channel ");
+						//char str[SHORT_STRING_LENGTH];
+						//sprintf(str, "%u\n\r", i); /* Print error message */
+						//VCOM_PushString(str);
 					}
 					break;
 
@@ -273,11 +274,11 @@ void Analog_ConvertToProcessValues(void){
 						analog_channels[i].processValue = analog_channels[i].fieldValue_filtered; /* the process value is just copied to the field value */
 					}else{/* Else */
 						Error_Set(ERROR_INVALID_CONFIG);
-						static bool sent = false;
-						if(!sent){
-							printf("Unit mismatch on channel %u\n", i); /* Print error message */
-							sent = true;
-						}
+						//static bool sent = false;
+						//if(!sent){
+						//	printf("Unit mismatch on channel %u\n", i); /* Print error message */
+						//	sent = true;
+						//}
 
 
 					}

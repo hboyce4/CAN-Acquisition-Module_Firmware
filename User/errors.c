@@ -13,6 +13,9 @@
  */
 uint32_t g_ErrorCode = ERROR_CORRUPTED_CONFIG /*| ERROR_SOME_OTHER_ERROR */; // Put errors that are initialized to true here
 
+//error_message_t error_message_buff[8];
+
+
 uint32_t Error_GetCode(void){
 
 	return g_ErrorCode;

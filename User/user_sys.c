@@ -69,7 +69,7 @@ void sys_get_unit_string(physical_unit_t unit_type, char* string){/* Max. 8 char
 			break;
 
 		default: /*If the unit is not known */
-			strcpy(string, "");
+			strcpy(string, "Unknown");
 			break;
 
 	}
