@@ -237,8 +237,8 @@ void UI_increment_value(void){
 
 						}else if (g_i8ColumnSel == 1){
 							analog_channels[g_i8AnalogChannelSel].sensorType++;
-							if(analog_channels[g_i8AnalogChannelSel].sensorType > ANALOG_SENSOR_THERMOCOUPLE){/* If greater than last type */
-								analog_channels[g_i8AnalogChannelSel].sensorType = ANALOG_SENSOR_THERMOCOUPLE;/* Don't go any further, stay at last type. */
+							if(analog_channels[g_i8AnalogChannelSel].sensorType >= ANALOG_SENSOR_QTY){/* If greater than last type */
+								analog_channels[g_i8AnalogChannelSel].sensorType = ANALOG_SENSOR_QTY - 1;/* Don't go any further, stay at last type. */
 							}
 						}
 						break;
@@ -767,7 +767,7 @@ void UI_draw_info_page_PV(void){ /* Process values */
 	/***************************************** Fifth Line ********************************************/
 	sys_get_unit_string(analog_channels[8].processUnit, left_unit_str);
 	sys_get_unit_string(analog_channels[9].processUnit, right_unit_str);
-	sprintf(line_str, "CH8: %f %s%sCH8: %f %s\n\r", analog_channels[8].processValue, left_unit_str, CURSOR_RIGHT_COLUMN, analog_channels[9].processValue, right_unit_str);
+	sprintf(line_str, "CH8: %f %s%sCH9: %f %s\n\r", analog_channels[8].processValue, left_unit_str, CURSOR_RIGHT_COLUMN, analog_channels[9].processValue, right_unit_str);
 
 	VCOM_PushString((char*) line_str);
 
@@ -959,13 +959,13 @@ void UI_get_analog_sensor_string(analog_sensor_t type, char* string){
 			strcpy(string, "NTC Thermistor");
 			break;
 
-		case ANALOG_SENSOR_PYRANOMETER:
+		/*case ANALOG_SENSOR_PYRANOMETER:
 			strcpy(string, "Pyranometer");
 			break;
 
 		case ANALOG_SENSOR_THERMOCOUPLE:
 			strcpy(string, "Thermocouple");
-			break;
+			break;*/
 
 		default: /*If the unit is not known */
 			strcpy(string, "Unknown");

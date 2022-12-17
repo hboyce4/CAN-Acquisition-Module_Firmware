@@ -221,25 +221,32 @@ void I2C_sensorConfigure(void){
 	if(env_sensor.sensorType == I2C_SENSOR_SCD30){/* If sensor is SCD30 */
 			/* Perform initial configuration */
 
-			uint8_t press_data[SCD30_MEAS_INTERVAL_LEN_BYTES];
+			// TODO: Implement CRC calculation instead of taking the fixed values from the datasheet.
 
-			uint16_t measurement_interval = 2;/* Setting atmospheric pressure to zero will disable pressure compensation */
-			press_data[0] = (uint8_t)((measurement_interval & 0xFF00)>>8); /* MSB first */
-			press_data[1] = (uint8_t)(measurement_interval & 0x00FF);/* then LSB */
+			uint8_t atm_data[SCD30_ATM_PRESS_LEN_BYTES + 1];/* Plus one for the CRC */
 
-			I2C_sensorSendWithCommand(SCD30_ADR, SCD30_CMD_SET_MEAS_INTERVAL_ACQ, press_data, SCD30_MEAS_INTERVAL_LEN_BYTES);
-
-			delay_ms(3); /* Allow at least 3ms for the sensor to process data */
-
-			uint8_t atm_data[SCD30_ATM_PRESS_LEN_BYTES];
-
-			uint16_t atmospheric_pressure = 0;/* Setting atmospheric pressure to zero will disable pressure compensation */
+			uint16_t atmospheric_pressure = 0;/* Setting atmospheric pressure to zero will disable pressure compensation. MUST be zero because the CRC is not calculated! */
 			atm_data[0] = (uint8_t)((atmospheric_pressure & 0xFF00)>>8); /* MSB first */
 			atm_data[1] = (uint8_t)(atmospheric_pressure & 0x00FF);/* then LSB */
+			atm_data[2] = 0x81; /* Fixed CRC. Atmospheric pressure MUST be zero! */
 
-			I2C_sensorSendWithCommand(SCD30_ADR, SCD30_CMD_START_CONTINUOUS_ACQ, atm_data, SCD30_ATM_PRESS_LEN_BYTES);
+			I2C_sensorSendWithCommand(SCD30_ADR, SCD30_CMD_START_CONTINUOUS_ACQ, atm_data, SCD30_ATM_PRESS_LEN_BYTES + 1);
 
 			delay_ms(3); /* Allow at least 3ms for the sensor to process data */
+
+
+			uint8_t interval_data[SCD30_MEAS_INTERVAL_LEN_BYTES + 1];/* Plus one for the CRC */
+
+			uint16_t measurement_interval = 2;/* Setting acquisition interval to 2 seconds. MUST be 2 because the CRC is fixed and not calculated!  */
+			interval_data[0] = (uint8_t)((measurement_interval & 0xFF00)>>8); /* MSB first */
+			interval_data[1] = (uint8_t)(measurement_interval & 0x00FF);/* then LSB */
+			interval_data[2] = 0xE3; /* CRC. Measurement interval MUST be 2 !*/
+
+			I2C_sensorSendWithCommand(SCD30_ADR, SCD30_CMD_SET_MEAS_INTERVAL_ACQ, interval_data, SCD30_MEAS_INTERVAL_LEN_BYTES + 1);
+
+			delay_ms(3); /* Allow at least 3ms for the sensor to process data */
+
+
 
 
 		}
@@ -262,6 +269,7 @@ void I2C_sensorOncePerSecondRoutine(void){
 
 			I2C_sensorSendWithCommand(SCD30_ADR, SCD30_CMD_GET_MEAS_RDY, NULL, 0); /* Prepare a new readout for the next time this fct is run */
 			I2C_sensorWaitForTransactionEnd();
+
 			I2C_sensorReceive(SCD30_ADR, SCD30_DATA_RDY_LEN_BYTES);/* Get all the data */
 			I2C_sensorWaitForTransactionEnd();
 
@@ -279,6 +287,7 @@ void I2C_sensorOncePerSecondRoutine(void){
 			break;
 
 		case I2C_SENSOR_NONE:
+			LED_BLUE = LED_OFF; /* Switch off LED "manually" because blue LED is only handled automatically when there is a sensor present. */
 			break;
 
        }

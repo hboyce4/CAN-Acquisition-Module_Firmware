@@ -140,7 +140,7 @@ void PD_SaveConfig(void){
 
 			FMC_Write(DataFlashBaseAdress + CHECKSUM_OFFSET, CRC32);
 
-			Error_Clear(ERROR_CORRUPTED_CONFIG);
+			Error_Clear(ERROR_CORRUPTED_CONFIG || ERROR_INVALID_CONFIG);
 
 		}
 
