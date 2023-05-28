@@ -21,6 +21,7 @@ extern uint32_t g_u32UID[UID_SIZE];
 void PD_Init(void);
 void PD_SaveConfig(void);
 void PD_LoadConfig(void);
+void PD_ClearConfig(void);
 
 uint32_t PD_ComputeConfigChecksum(uint32_t start, uint32_t len);
 

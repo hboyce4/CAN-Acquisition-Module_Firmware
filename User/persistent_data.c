@@ -208,3 +208,30 @@ void PD_LoadConfig(void){
 }
 
 
+void PD_ClearConfig(void){ /* Only handles a single page!!!*/
+
+	SYS_UnlockReg();
+	FMC_Open();       /* Enable FMC ISP function   */
+	FMC_ENABLE_AP_UPDATE();
+
+	uint32_t DataFlashBaseAdress = FMC_ReadDataFlashBaseAddr();
+
+	if(!(FMC_Read(FMC_CONFIG_BASE) & 0x01) && (DataFlashBaseAdress != 0xFFFFFFFF)){ /* If the data flash base address is not set to the obviously invalid value... */
+		/* .. and the DFEN bit is set to "data flash enabled" */
+
+
+		/* Erase */
+		FMC_Erase(DataFlashBaseAdress);/* Erase one page, starting at DFBA. */
+
+		/* Verify erase */
+		if(!(FMC_CheckAllOne(DataFlashBaseAdress, 1 * FMC_FLASH_PAGE_SIZE) == READ_ALLONE_YES)){/* Check all one on one page*/
+			printf("Memory erase failed! Cannot write.\n");
+		}
+
+	}else{
+		printf("No Data Flash Allocated!!\n");
+	}
+
+	FMC_Close();
+	SYS_LockReg();
+}

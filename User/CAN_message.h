@@ -98,7 +98,9 @@
  *
  * */
 
-#define CAN_SPEED_DEFAULT 125000
+#define CAN_SPEED_DEFAULT 125000 /* bit/sec */
+#define CAN_SPEED_MIN 15625 /* bit/sec */
+#define CAN_SPEED_MAX 2000000 /* bit/sec */
 #define CAN_NODE_ID_DEFAULT 1
 
 #define CAN_NODE_ID_MIN 2 /* Define minimum node ID as 2, so that 1 is usually free.

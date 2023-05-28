@@ -18,6 +18,10 @@
 #include "analog.h"
 #include "I2C_sensors.h"
 #include "interrupt.h"
+#include "errors.h"
+
+
+#define SPI_LCD_CHANNEL_SEARCH_TIMEOUT (EADC_TOTAL_CHANNELS + 4) /* Stop after all analog channels have been searched plus some amount */
 
 
 
@@ -242,7 +246,7 @@ void LCD_Draw(void){
 
 	LCD_SetChannelString(g_DisplayChannelIndex, channel_str);
 
-	float meas;
+	float meas = 0;
 	if(g_DisplayChannelIndex <= EADC_LAST_GP_CHANNEL){
 		meas = analog_channels[g_DisplayChannelIndex].processValue;
 		sys_get_unit_string(analog_channels[g_DisplayChannelIndex].processUnit,unit_str);
@@ -283,17 +287,17 @@ bool LCD_CheckIfChannelEnabled(uint8_t index){
 
 void LCD_FindNextChannel(void){
 
-	g_DisplayChannelIndex++; /* Try next channel */
-	if(g_DisplayChannelIndex > EADC_LAST_GP_CHANNEL + 3){/* If that gets us after the last index*/
-		g_DisplayChannelIndex = 0;/* Rollover */
-	}
+	uint8_t i = 0;
 
-	while(!(LCD_CheckIfChannelEnabled(g_DisplayChannelIndex))){/* While the selected channel is disabled*/
-		g_DisplayChannelIndex++; /* Try next channel */
+	do{
+		g_DisplayChannelIndex++; /* Try next channel */;
+		i++;/* increment timeout counter */
+
 		if(g_DisplayChannelIndex > EADC_LAST_GP_CHANNEL + 3){/* If that gets us after the last index*/
 			g_DisplayChannelIndex = 0;/* Rollover */
 		}
-	}
+
+	}while(!(LCD_CheckIfChannelEnabled(g_DisplayChannelIndex)) && (i < SPI_LCD_CHANNEL_SEARCH_TIMEOUT));
 
 }
 

@@ -16,6 +16,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <math.h>
+#include <string.h>
 #include "NuMicro.h"
 #include "I2C_sensors.h"
 

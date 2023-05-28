@@ -207,6 +207,13 @@ void UI_increment_value(void){
 							PD_SaveConfig();
 						}
 						break;
+					case 2:
+						if(g_i8ColumnSel == 0){
+							PD_ClearConfig();
+						}else if (g_i8ColumnSel == 1){
+							/*inverter_setpoints.V_DC_diff_setpoint += FLOAT_INCREMENT;*/
+							PD_ClearConfig();
+						}
 
 				}
 				break;
@@ -216,13 +223,16 @@ void UI_increment_value(void){
 
 				switch(g_i8RowSel){
 					case 1:
-						g_CANSpeed *= 2;
+						if(g_CANSpeed < CAN_SPEED_MAX){
+							g_CANSpeed *= 2;
+						}
 						break;
 					case 2:
 						g_CANNodeID++;
 						if(g_CANNodeID > CAN_NODE_ID_MAX){
 							g_CANNodeID = CAN_NODE_ID_MAX;
 						}
+						break;
 				}
 				break;
 
@@ -327,7 +337,11 @@ void UI_decrement_value(void){
 
 				switch(g_i8RowSel){
 					case 1:
-						g_CANSpeed /= 2;
+
+						if(g_CANSpeed > CAN_SPEED_MIN){
+							g_CANSpeed /= 2;
+						}
+
 						break;
 					case 2:
 						if(g_CANNodeID > CAN_NODE_ID_MIN){
@@ -504,11 +518,22 @@ void UI_draw_param_page_sys(void){
 		strcpy(color_str, COLOR_NOT_SELECTED);
 	}
 
-	sprintf(line_str,"Config save: %sPress + or - to save%s\n\r",color_str,COLOR_DEFAULT);
-
+	sprintf(line_str,"Config save: %sPress + or - %s\n\r",color_str,COLOR_DEFAULT);
 	VCOM_PushString((char*) line_str);
 
-	UI_set_num_rows(2);/* 2 rows total including page select */
+	if(g_i8RowSel == 2){
+		strcpy(color_str, COLOR_SELECTED);
+	}else{
+		strcpy(color_str, COLOR_NOT_SELECTED);
+	}
+
+
+	sprintf(line_str,"Config clear: %sPress + or - %s then reboot\n\r",color_str,COLOR_DEFAULT);
+	VCOM_PushString((char*) line_str);
+
+
+
+	UI_set_num_rows(3);/* 3 rows total including page select */
 
 }
 
